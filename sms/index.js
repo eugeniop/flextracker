@@ -11,10 +11,26 @@ const { log } = console;
 const sms = require('./smsutils');
 const domain = require('../domain');
 
-server.post('/', twilio.webhook(), smsHandler);
+server.post('/', smsHandler);
 server.get('/', smsHandler);
 
 function smsHandler(req, res, next){
+
+  const twilioSignature = req.headers['x-twilio-signature'];
+  const params = req.body;
+  const url = 'http://flextracker.io';
+
+  const requestIsValid = twilio.validateRequest(
+    process.env.TWILIO_AUTH_TOKEN,
+    twilioSignature,
+    url,
+    params
+  );
+
+  if (!requestIsValid) {
+    log("INVALID TW REQ");
+  }
+
   //Commands on SMS are of the format: {c} {args}
   var { verb, command } = sms.parseInput(req);
   var phone = sms.getPhone(req);
@@ -79,6 +95,6 @@ function smsHandler(req, res, next){
     }],
     (error)=>{
       log(error);
-      sms.sendSMSResponse(res, error ? util.format("ERROR. Please try again. (%s)", error) : locals.smsResponse);
+      sms.sendSMSResponse(res, error ? `ERROR. Please try again. (${error})` : locals.smsResponse);
     });
 }

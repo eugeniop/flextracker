@@ -16,7 +16,9 @@ const parseForm = bodyParser.urlencoded({ extended: false });
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
-  res.render('home');
+  domain.getSubscriberById(req.session.user.sub, (e, s)=>{    
+    res.render('home', { userWithNoMetrics: !(s.metrics && s.metrics.length > 0) });
+  });
 });
 
 app.get('/metrics', (req, res) =>{

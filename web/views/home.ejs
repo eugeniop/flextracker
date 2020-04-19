@@ -1,10 +1,34 @@
 <%- include('header'); %>
 
         <div class="container-fluid">
-
           <!-- Page Heading -->
-          <h1 class="h3 mb-4 text-gray-800">Welcome to FlexTracker</h1>
+          <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-4 text-gray-800">Welcome to FlexTracker</h1>
+         </div>
 
+            <div class="row">
+                <div class="col-l">
+                    <div class="card shadow">
+                        <div class="card-header d-sm-flex align-items-center justify-content-between">
+                          <h6 class="m-0 font-weight-bold text-primary">Track anything</h6>
+                          <%if(userWithNoMetrics){%>
+                          <a href="/web/metrics" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm">
+                            <i class="fas fa-check fa-sm text-white-50"></i>
+                            Create your first metric!
+                          </a>
+                          <%}%>
+                        </div>
+                        <div class="card-body">
+                          <p>FlexTracker allows you to keep track of any metric by simply sending an SMS.</p>
+                          <p>You can define <b>any</b> single value metric. It supports optional simple numeric range validation as well.</p>
+                          <p>To save a new metric, send command <code>s {command} {value}</code></p>
+                          <p>For example. If you defined a metric named <b>temparature</b> with a command <b>t</b> and you wanted to record a new value of 36.9C. You would text <code>s t 36.9.</code>. "s" means <b>save</b></p>
+                          <p>The number  to text to is: <code>+1-206-900-8579</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
 <%- include("footer"); %>
+
