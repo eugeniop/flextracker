@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const bodyParser = require('body-parser');
 const session = require('express-session');
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
@@ -20,7 +21,7 @@ const config = {
   appSession: false,
   required: false,
   auth0Logout: false,
-  baseURL: "http://localhost:5000",
+  baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
   authorizationParams: {
     response_type: "code",
