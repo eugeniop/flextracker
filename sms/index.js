@@ -5,14 +5,20 @@ module.exports = server;
 const _ = require('lodash');
 const twilio = require('twilio');
 const async = require('async');
+const bodyParser = require('body-parser');
 
 const { log } = console;
 
 const sms = require('./smsutils');
 const domain = require('../domain');
 
-server.post('/', smsHandler);
-server.get('/', smsHandler);
+
+const parseForm = bodyParser.urlencoded({ extended: false });
+const parseJson = bodyParser.json();
+const twilioValidator =  twilio.webhook();
+
+server.post('/', [parseJson, twilioValidator], smsHandler);
+server.get('/', parseForm, smsHandler);
 
 function smsHandler(req, res, next){
 
