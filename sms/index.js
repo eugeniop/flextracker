@@ -18,26 +18,12 @@ const parseJson = bodyParser.json();
 const twilioValidator =  twilio.webhook();
 
 server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
-server.get('/', parseForm, smsHandler);
+
+if(process.env.NODE_ENV !== 'production'){
+  server.get('/', parseForm, smsHandler);
+}
 
 function smsHandler(req, res, next){
-
-  log(req.body);
-
-  const twilioSignature = req.headers['x-twilio-signature'];
-  const params = req.body;
-  const url = process.env.BASE_URL + "/sms";
-
-  const requestIsValid = twilio.validateRequest(
-    process.env.TWILIO_AUTH_TOKEN,
-    twilioSignature,
-    url,
-    params
-  );
-
-  if (!requestIsValid) {
-    log("Invalid req");
-  }
 
   //Commands on SMS are of the format: {c} {args}
   var { verb, command } = sms.parseInput(req);

@@ -87,7 +87,7 @@ app.post('/metrics/add', parseForm, csrfProtection, (req, res) =>{
   }
 
   if(_.some(errors)){
-    return res.render('metrics_add', {errors: errors, metric: metric, csrfToken: req.csrfToken()}); 
+    return res.render('metrics_add_edit', {errors: errors, metric: metric, csrfToken: req.csrfToken()}); 
   }
 
   domain.addMetric(req.session.user.sub, metric, (e, s) =>{
