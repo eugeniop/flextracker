@@ -1,0 +1,54 @@
+<%- include('header'); %>
+        <div class="container-fluid">
+
+          <!-- Page Heading -->
+          <h1 class="h3 mb-2 text-gray-800">Logs</h1>
+          <p class="mb-4">Events captured.</p>
+
+          <!-- DataTales Example -->
+          <div class="card shadow mb-4">
+            <div class="card-header py-3">
+              <h6 class="m-0 font-weight-bold text-primary">Metric: <%-name%></h6>
+            </div>
+
+            <div class="card-body">
+              <div class="form-group">
+                <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search" action='/web/metrics/logs' method=post>
+                  <div class="input-group">
+                    <input type="hidden" name="_csrf" value="<%- csrfToken%>">
+                    <input type="text" class="form-control bg-light border-0 small" placeholder="<%-name%>" aria-label="name" name='name'>
+                    <div class="input-group-append">
+                      <button class="btn btn-primary" type="submit">
+                       <i class="fas fa-search fa-sm"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                  <thead>
+                    <tr>
+                      <th>Timestamp (PST)</th>
+                      <th>Value</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <%
+                      logs.forEach((l)=>{%>
+                      <tr>
+                        <td><%- formatDate(l.createdAt); %></td>
+                        <td><%- l.value %></td>
+                        <td><%- l.notes %></td>
+                    </tr>  
+                    <%});%>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+<%- include("footer"); %>

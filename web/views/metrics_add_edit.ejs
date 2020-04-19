@@ -1,0 +1,57 @@
+<%- include('header'); %>
+        <div class="container-fluid">
+
+          <!-- Page Heading -->
+          <h1 class="h3 mb-2 text-gray-800">Metrics</h1>
+          <p class="mb-4">Metrics associated with your phone</p>
+
+          <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between"">
+              <h6 class="m-0 font-weight-bold text-primary">New Metric</h6>
+            </div>
+            <div class="card-body">
+              <form action='/web/metrics/add' method=post novalidate>
+                <input type="hidden" name="_csrf" value="<%- csrfToken%>">
+                <div class="form-group">
+                  <label for="name">Name</label>
+                  <input type="text" class="form-control" id="name" name='name' aria-describedby="nameHelp" placeholder="Enter a name (no spaces)" value='<%-metric.name%>'>
+                  <%if(errors.name){%>
+                    <small id="nameHelp" class="form-text text-danger"><%-errors.name%></small>
+                  <%}%>
+                </div>
+                <div class="form-group">
+                  <label for="units">Command</label>
+                  <input type="text" class="form-control" id="command" name='command' value='<%-metric.command%>' placeholder="The command to be sent by phone">
+                  <%if(errors.command){%>
+                    <small id="commandHelp" class="form-text text-danger"><%-errors.command%></small>
+                  <%}%>
+                </div>
+                <div class="form-group">
+                  <label for="units">Units</label>
+                  <input type="text" class="form-control" id="units" name='units' value='<%-metric.units%>' placeholder="Units (e.g. C, Kg, meters, seconds)">
+                  <%if(errors.units){%>
+                    <small id="unitsHelp" class="form-text text-danger"><%-errors.units%></small>
+                  <%}%>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="validate" name='validate' <%if(metric.validate){%><%-"checked"%><%}%>>
+                  <label class="form-check-label" for="validate">Validate on save</label>
+                  <%if(errors.validate){%>
+                    <small id="unitsHelp" class="form-text text-danger"><%-errors.validate%></small>
+                  <%}%>
+                </div>
+                <div class="form-group">
+                  <label for="min">Min</label>
+                  <input type="numeric" class="form-control" id="min" name='min' value='<%- metric.min%>' placeholder="Minimum value for the metric (only needed if validate=true)">
+                </div>
+                <div class="form-group">
+                  <label for="max">Max</label>
+                  <input type="numeric" class="form-control" id="max" name='max' value='<%-metric.max%>' placeholder="Maximum value for the metric (only needed if validate=true)">
+                </div>
+                <a class="btn btn-danger" href='/web/metrics/'>Cancel</a>
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </form>
+            </div>  
+          </div>
+        </div>
+<%- include("footer"); %>
