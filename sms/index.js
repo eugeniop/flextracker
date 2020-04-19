@@ -16,20 +16,6 @@ server.get('/', smsHandler);
 
 function smsHandler(req, res, next){
 
-  const twilioSignature = req.headers['x-twilio-signature'];
-  const params = req.body;
-
-  const requestIsValid = twilio.validateRequest(
-    process.env.TWILIO_AUTH_TOKEN,
-    twilioSignature,
-    process.env.BASE_URL,
-    params
-  );
-
-  if (!requestIsValid) {
-    log("INVALID TW REQ");
-  }
-
   //Commands on SMS are of the format: {c} {args}
   var { verb, command } = sms.parseInput(req);
   var phone = sms.getPhone(req);
