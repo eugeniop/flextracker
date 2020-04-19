@@ -18,12 +18,11 @@ function smsHandler(req, res, next){
 
   const twilioSignature = req.headers['x-twilio-signature'];
   const params = req.body;
-  const url = 'http://flextracker.io';
 
   const requestIsValid = twilio.validateRequest(
     process.env.TWILIO_AUTH_TOKEN,
     twilioSignature,
-    url,
+    process.env.BASE_URL,
     params
   );
 
