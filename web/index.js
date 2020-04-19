@@ -17,7 +17,7 @@ app.use(cookieParser());
 
 app.get('/', (req, res) => {
   domain.getSubscriberById(req.session.user.sub, (e, s)=>{    
-    res.render('home', { userWithNoMetrics: !(s.metrics && s.metrics.length > 0) });
+    res.render('home', { userWithNoMetrics: !(s && s.metrics && s.metrics.length > 0) });
   });
 });
 
