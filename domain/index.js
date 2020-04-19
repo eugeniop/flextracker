@@ -178,7 +178,7 @@ domain.saveSample = (subscriber, command, done) => {
 
   const args = command.split(' ');
 
-  const metric = _.find(subscriber.metrics, (m) => m.command === args[0].toLowerCase());
+  const metric = _.find(subscriber.metrics, (m) => m.command.toLowerCase() === args[0].toLowerCase());
 
   if(!metric){ return done("ERROR. Undefined metric"); }
 
