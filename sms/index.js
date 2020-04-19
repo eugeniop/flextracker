@@ -17,7 +17,7 @@ const parseForm = bodyParser.urlencoded({ extended: false });
 const parseJson = bodyParser.json();
 const twilioValidator =  twilio.webhook();
 
-server.post('/', [parseForm, parseJson], smsHandler);
+server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
 server.get('/', parseForm, smsHandler);
 
 function smsHandler(req, res, next){
@@ -26,7 +26,7 @@ function smsHandler(req, res, next){
 
   const twilioSignature = req.headers['x-twilio-signature'];
   const params = req.body;
-  const url = process.env.BASE_URL;
+  const url = process.env.BASE_URL + "/sms";
 
   const requestIsValid = twilio.validateRequest(
     process.env.TWILIO_AUTH_TOKEN,
