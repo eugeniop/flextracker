@@ -186,7 +186,9 @@ domain.saveSample = (subscriber, command, done) => {
 
   if(_.isNaN(value)){ return done("ERROR. The value is not numeric or is empty"); }
 
-  if(value >= metric.min && value < metric.max){
+  if(metric.validate && (value < metric.min || value > metric.max)){
+    return done(`ERROR. ${value} is an invalid value. Valid ranges:\nMin: ${metric.min}\nMax: ${metric.max}`);
+  } else {
 
     var event = {
       event: metric.name,
@@ -207,9 +209,6 @@ domain.saveSample = (subscriber, command, done) => {
           done(null, `New ${event.event} value saved.`);
         });
     });
-
-  } else {
-    done(`ERROR. ${value} is an invalid value. Valid ranges:\nMin: ${metric.min}\nMax: ${metric.max}`);
   }
 };
 
