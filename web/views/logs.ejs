@@ -46,6 +46,16 @@
                     <%});%>
                   </tbody>
                 </table>
+                <nav aria-label="...">
+                  <ul class="pagination">
+                    <li class="page-item <%- page===0 ? "disabled" : ""%>">
+                      <a class="page-link" href="/web/metrics/logs/<%-name%>?page=<%-page-1%>" tabindex="-1" aria-disabled="<%- page===0 ? "true" : "false"%>">Previous</a>
+                    </li>
+                    <li class="page-item <%- logs.length < page_size ? "disabled" : ""%>">
+                      <a class="page-link" href="/web/metrics/logs/<%-name%>?page=<%-page+1%>" aria-disabled="<%- logs.length < page_size ? "true" : "false"%>">>Next</a>
+                    </li>
+                  </ul>
+                </nav>
               </div>
             </div>
           </div>

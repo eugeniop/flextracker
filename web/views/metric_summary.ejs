@@ -1,0 +1,41 @@
+<%- include('header'); %>
+
+        <div class="container-fluid">
+          <!-- Page Heading -->
+          <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-4 text-gray-800">Summary for <%-name%></h1>
+         </div>
+
+          <div class="row">
+
+            <!-- Content Column -->
+            <div class="col-lg-6 mb-4">
+
+              <!-- Project Card Example -->
+              <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                  <h6 class="m-0 font-weight-bold text-primary"><%-name%></h6>
+                </div>
+                <div class="card-body">
+                  <h4 class="small font-weight-bold">Max<span class="float-right"><%-stats.max%>/<%-metric.max%></span></h4>
+                  <div class="progress mb-4">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: <%-100*stats.max/(metric.max-metric.min)%>%" aria-valuenow="<%-stats.max%>" aria-valuemin="<%-metric.min%>" aria-valuemax="<%-metric.max%>"><%-stats.max%></div>
+                  </div>
+                  <h4 class="small font-weight-bold">Min<span class="float-right"><%-stats.min%>/<%-metric.max%></span></h4>
+                  <div class="progress mb-4">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: <%-100*stats.min/(metric.max-metric.min)%>%" aria-valuenow="<%-stats.min%>" aria-valuemin="<%-metric.min%>" aria-valuemax="<%-metric.max%>"></div>
+                  </div>
+                  <h4 class="small font-weight-bold">Average<span class="float-right"><%-stats.avg%>/<%-metric.max%></span></h4>
+                  <div class="progress mb-4">
+                    <div class="progress-bar" role="progressbar" style="width: <%-100*stats.avg/(metric.max-metric.min)%>%" aria-valuenow="<%-stats.average%>" aria-valuemin="<%-metric.min%>" aria-valuemax="<%-metric.max%>"></div>
+                  </div>
+                  <h4 class="small font-weight-bold">Median<span class="float-right"><%-stats.median%>/<%-metric.max%></span></h4>
+                  <div class="progress mb-4">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: <%-100*stats.median/(metric.max-metric.min)%>%" aria-valuenow="<%-stats.median%>" aria-valuemin="<%-metric.min%>" aria-valuemax="<%-metric.max%>"></div>
+                  </div>
+                </div>
+              </div>
+
+          </div>
+
+<%- include("footer"); %>

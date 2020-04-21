@@ -44,7 +44,11 @@ function smsHandler(req, res, next){
                       '"me" returns information about self.',
                       ['m', 'self', 'me'],
                       (done) => {
-                        done(null, `Hello ${phone}.\nYour time zone is: ${locals.subscriber.tz}\nYou've got ${locals.subscriber.metrics.length} metrics.`);
+                        var m = 0;
+                        if(locals.subscriber.metrics){
+                          m = locals.subscriber.metrics.length;
+                        }
+                        done(null, `Hello ${phone}.\nYour time zone is: ${locals.subscriber.tz}\nYou've got ${m} metrics.`);
                       }),
         sms.menuOption('List Metrics',
                       '"lm"',
@@ -54,7 +58,7 @@ function smsHandler(req, res, next){
                         
                       }),
         sms.menuOption('Save new sample',
-                      '"s {metric shortcut} {value} {extra}"',
+                      '"s {metric command} {value} {extra}"',
                       ['s', 'save'],
                       (done) => {
                         domain.saveSample(locals.subscriber, command, done);

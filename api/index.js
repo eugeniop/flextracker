@@ -30,3 +30,13 @@ server.get('/metric/log/:name', (req, res, next) => {
         });
     });
 });
+
+server.get('/metric/summary/:name', (req, res, next) => {
+    domain.getMetricSummary(req.user.sub, (e_s,s)=>{
+        if(e_s) return next(e);
+        domain.getLogsByPhone(s.phone, req.params.name, page, (e, logs)=>{
+            if(e) return next(e);
+            return res.json(logs);
+        });
+    });
+});

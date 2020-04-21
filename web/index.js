@@ -98,13 +98,14 @@ app.post('/metrics/add', parseForm, csrfProtection, (req, res) =>{
 app.get('/metrics/logs/:name?', csrfProtection, (req, res) =>{
   domain.getSubscriberById(req.session.user.sub, (e, s)=>{
     if(!s.metrics || s.metrics.length === 0){
-      return res.render('logs', {name: 'No metrics defined yet!', logs: [], csrfToken: req.csrfToken()});
+      return res.render('logs', {name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
     }
 
     const metricName = req.params.name || s.metrics[0].name;
+    const page = req.query.page || 0;
 
-    domain.getLogsByPhone(s.phone, metricName, req.query.page || 0, (e, l) =>{
-      res.render('logs', {name: metricName, logs: l, csrfToken: req.csrfToken() });
+    domain.getLogsByPhone(s.phone, metricName, page, (e, l) =>{
+      res.render('logs', {name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
     });
   });
 });
@@ -113,4 +114,17 @@ app.post('/metrics/logs', parseForm, csrfProtection, (req, res) =>{
   log(req.body);
   const name = req.body.name;
   res.redirect('/web/metrics/logs/' + name);
+});
+
+app.get('/metrics/summary/:name', (req, res) =>{
+  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
+    
+    const metricName = req.params.name;
+
+    const metric = _.find(s.metrics, (m) => m.name === metricName);
+
+    domain.getMetricSummary(s.phone, metricName, 30, (e,summary) => {
+      res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
+    });
+  });
 });

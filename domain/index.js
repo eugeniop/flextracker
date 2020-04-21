@@ -1,10 +1,7 @@
 var domain = module.exports;
 
-// const { ObjectID } = require('mongodb');
-
 const async = require('async');
 const _ = require('lodash');
-// const moment = require('moment-timezone');
 
 const { log } = console;
 
@@ -13,7 +10,11 @@ const log_collection_prefix = 'events_';
 
 const db = require('./db.js');
 
-const page_size = process.env.PAGE_SIZE || 100;
+var page_size = Number(process.env.PAGE_SIZE);
+
+if(_.isNaN(page_size)){
+  page_size = 100;
+}
 
 domain.getSubscriberById = (sub, done) => {
   db.connectDb((err, client) => {
@@ -237,7 +238,7 @@ function getSamplesCollectionName(phone){
 //   }
 // */
 
-domain.getMetricSummary = (sub, metricName, days, done) => {
+domain.getMetricSummary = (phone, metricName, days, done) => {
   domain.getData(phone, {
                           event: metricName,
                           createdAt: {
@@ -249,7 +250,7 @@ domain.getMetricSummary = (sub, metricName, days, done) => {
       if(err) return done(err);
 
       if(data.length === 0) {
-        return done(null, null);
+        return done(null, { samples: 0 });
       }
 
       var ss = require('simple-statistics');
@@ -277,7 +278,8 @@ domain.getData = (phone, query, page, done) => {
     }
 
     db.collection(getSamplesCollectionName(phone))
-      .find(query, { sort: ['createdAt'] })
+      .find(query)
+      .sort({createdAt:-1})
       .skip(page_size * page)
       .limit(page_size)
       .toArray((err, results) => {
@@ -288,13 +290,4 @@ domain.getData = (phone, query, page, done) => {
         done(null, results);
       });
   });
-}
-
-
-domain.getDays = (days) => {
-  var topDaySpan = 1000;
-  if (!days || days > topDaySpan) {
-    return topDaySpan;
-  }
-  return days;
-}
+};

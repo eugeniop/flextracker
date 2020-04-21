@@ -13,10 +13,14 @@ const { auth, requiresAuth } = require("express-openid-connect");
 
 var server = express();
 
-server.locals.formatDate = (d) => {
+//Helper functions properties for templates
+server.locals.formatDate = function(d){
   return moment(new Date(d)).format('YYYY/MM/DD HH:mm:ss');
 };
 
+server.locals.page_size = process.env.PAGE_SIZE;
+
+//Auth0 OPENIDC config
 const config = {
   appSession: false,
   required: false,
@@ -33,7 +37,6 @@ const config = {
   clientSecret: process.env.CLIENT_SECRET,
   handleCallback: async function (req, res, next) {
     // Store recevied tokens (access and ID in this case) in server-side storage.
-    log(req.openidTokens.claims());
     req.session.user = req.openidTokens.claims();
     req.session.openidTokens = req.openidTokens;
     server.locals.user = req.session.user;
@@ -44,15 +47,13 @@ const config = {
   }
 };
 
-//Modules
+//App modules
 const api = require('./api');
 const sms = require('./sms');
 const web = require('./web');
-// const bodyParser = require('body-parser');
-// const _ = require('lodash');
-// const Boom = require('boom');
 
-server.enable("trust proxy"); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+// Only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+server.enable("trust proxy"); 
 
 server.set('port', (process.env.PORT || 5000));
 
