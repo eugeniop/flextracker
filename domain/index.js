@@ -68,9 +68,9 @@ domain.createSubscriber = (sub, phone, done) => {
                   { $set: {
                     sub: sub,
                     phone: phone,
-                    tz: 'America/Los_Angeles' 
+                    tz: 'America/Los_Angeles'   //Fixed TZ for now. TODO: consider customizing TZ by subscriber
                   } }, 
-                  {upsert: true}, 
+                  {upsert: true},
                   (error, count) => {
                     if(error) return done(error);
                     done();  
