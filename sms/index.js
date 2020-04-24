@@ -59,7 +59,7 @@ function smsHandler(req, res, next){
                           return done(null, "You've got no metrics defined");
                         }
                         var msg = `You've got ${m.length} metrics\n`;
-                        msg += _.map(m, (i) => `${name} - use command: ${command}.`).join("\n");
+                        msg += _.map(m, (i) => `${m.name} - use command: ${m.command}.`).join("\n");
                         return done(null, msg);
                       }),
         sms.menuOption('Save new sample',
