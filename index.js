@@ -18,7 +18,7 @@ server.locals.formatDate = function(d){
   return moment(new Date(d)).format('YYYY/MM/DD HH:mm:ss');
 };
 
-server.locals.page_size = process.env.PAGE_SIZE;
+server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 
 //Auth0 OPENIDC config
 const config = {

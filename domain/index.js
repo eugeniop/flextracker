@@ -216,7 +216,7 @@ domain.saveSample = (subscriber, command, done) => {
 domain.getLogsByPhone = (phone, metricName, page, done) =>{
   domain.getData(phone, {
                           event: metricName
-                        }, page, 
+                        }, page, page_size, -1,
     (err, data) => {
       if(err) return done(err);
       done(null, data);
@@ -226,6 +226,23 @@ domain.getLogsByPhone = (phone, metricName, page, done) =>{
 function getSamplesCollectionName(phone){
   return log_collection_prefix + phone.replace("+", "");
 }
+
+//Used for charts
+domain.getLogsInLastDaysByPhone = (phone, metricName, days, done) =>{
+  domain.getData(phone, {
+                          event: metricName,
+                          createdAt: {
+                            $gte: new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000),
+                          },
+
+                        }, 0, 100, 1,
+    (err, data) => {
+      if(err) return done(err);
+      done(null, data);
+    });
+};
+
+
 
 // /* 
 //   Returns a simple statistic object with teh following schema:
@@ -237,7 +254,6 @@ function getSamplesCollectionName(phone){
 //       samples: 26
 //   }
 // */
-
 domain.getMetricSummary = (phone, metricName, days, done) => {
   domain.getData(phone, {
                           event: metricName,
@@ -245,7 +261,7 @@ domain.getMetricSummary = (phone, metricName, days, done) => {
                             $gte: new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000),
                           },
                         },
-                  0,
+                  0, 200, 1,
     (err, data) => {
       if(err) return done(err);
 
@@ -270,7 +286,7 @@ domain.getMetricSummary = (phone, metricName, days, done) => {
     });
 }
 
-domain.getData = (phone, query, page, done) => {
+domain.getData = (phone, query, page, pageSize, dateSort, done) => {
   db.connectDb((err, client) => {
     var db = client.db();
     if(err){
@@ -279,9 +295,9 @@ domain.getData = (phone, query, page, done) => {
 
     db.collection(getSamplesCollectionName(phone))
       .find(query)
-      .sort({createdAt:-1})
-      .skip(page_size * page)
-      .limit(page_size)
+      .sort({createdAt: dateSort  })
+      .skip(pageSize * page)
+      .limit(pageSize)
       .toArray((err, results) => {
         client.close();
         if(err){

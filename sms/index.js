@@ -54,8 +54,13 @@ function smsHandler(req, res, next){
                       '"lm"',
                       ['lm', 'list'],
                       (done) => {
-                        //Returns all metrics defined for this subscriber
-                        
+                        const m = locals.subscriber.metrics  || [];
+                        if(m.length === 0){
+                          return done(null, "You've got no metrics defined");
+                        }
+                        var msg = `You've got ${m.length} metrics\n`;
+                        msg += _.map(m, (i) => `${name} - use command: ${command}.`).join("\n");
+                        return done(null, msg);
                       }),
         sms.menuOption('Save new sample',
                       '"s {metric command} {value} {extra}"',

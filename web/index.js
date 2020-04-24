@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 const _ = require('lodash');
+const moment = require('moment');
+
 const app = express.Router();
 module.exports = app;
 
@@ -127,4 +129,34 @@ app.get('/metrics/summary/:name', (req, res) =>{
       res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
     });
   });
+});
+
+app.get('/metrics/chart/:name?', csrfProtection, (req, res) =>{
+  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
+    if(!s.metrics || s.metrics.length === 0){
+      return res.render('metric_chart', {name: 'No metrics defined yet!', logs: [], csrfToken: req.csrfToken()});
+    }
+
+    const metricName = req.params.name || s.metrics[0].name;
+    
+    const metric = _.find(s.metrics, (i) => i.name === metricName);
+
+    domain.getLogsInLastDaysByPhone(s.phone, metricName, 120, (e, logs) =>{
+      const data = _.map(logs, (l) => {
+        return {
+          t: moment(l.createdAt).format('MM/DD/YYYY HH:MM'),
+          y: l.value
+        };
+      });
+
+      log(data);
+
+      res.render('metric_chart', {name: metricName, units: metric.units, labels: _.map(data, (d)=> d.t), logs: data, csrfToken: req.csrfToken() });
+    });
+  });
+});
+
+app.post('/metrics/chart', parseForm, csrfProtection, (req, res) =>{
+  const name = req.body.name;
+  res.redirect('/web/metrics/chart/' + name);
 });
