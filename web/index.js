@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 const _ = require('lodash');
-const moment = require('moment');
+const moment = require('moment-timezone');
 
 const app = express.Router();
 module.exports = app;
@@ -17,23 +17,29 @@ const parseForm = bodyParser.urlencoded({ extended: false });
 
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{    
-    res.render('home', { userWithNoMetrics: !(s && s.metrics && s.metrics.length > 0) });
-  });
+const subscriberById = (req, res, next) => {
+    domain.getSubscriberById(req.session.user.sub, (e, s)=>{
+      if(e) return next(e);
+      req.subscriber = s;
+      next();
+    });
+  };
+
+app.get('/', subscriberById, (req, res) => {
+  const sub = req.subscriber;
+  res.render('home', { userWithNoMetrics: !(sub && sub.metrics && sub.metrics.length > 0) });
 });
 
-app.get('/metrics', (req, res) =>{
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
-    if(!s){
-      //Bootstrap subscriber in the database
-      domain.createSubscriber(req.session.user.sub, req.session.user.name, (e) =>{
-        return res.render('metrics', {metrics: []});    
-      })
-    } else {
-      res.render('metrics', {metrics: s.metrics || []});
-    }
-  });
+app.get('/metrics', subscriberById, (req, res) =>{
+  if(!req.subscriber){
+    //Bootstrap subscriber in the database
+    domain.createSubscriber(req.session.user.sub, req.session.user.name, (e) =>{
+      return res.render('metrics', {metrics: []});    
+    })
+  } else {
+    //_.filter(s.metrics, (m) => !m.multivalue)
+    res.render('metrics', {metrics: req.subscriber.metrics || []});
+  }
 });
 
 app.get('/metrics/delete/:name', (req, res) =>{
@@ -42,31 +48,26 @@ app.get('/metrics/delete/:name', (req, res) =>{
   });
 });
 
-app.get('/metrics/edit/:name', csrfProtection, (req, res) =>{
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
-    const metric = _.find(s.metrics, (m) => m.name === req.params.name);
-    res.render('metrics_add_edit', { csrfToken: req.csrfToken(), metric: metric, errors: [] });
-  });
+app.get('/metrics/edit/:name', subscriberById, csrfProtection, (req, res) =>{
+  const sub = req.subscriber;
+  const metric = _.find(sub.metrics, (m) => m.name === req.params.name);
+  const unAvailableCommands = _.map(sub.metrics,(m)=>m.command).join(',');
+  res.render('metrics_add_edit', { unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric: metric, errors: [] });
 });
 
-app.get('/metrics/add', csrfProtection, (req,res) =>{
-  res.render('metrics_add_edit', { csrfToken: req.csrfToken(), metric:{}, errors: [] }); 
+app.get('/metrics/add', subscriberById, csrfProtection, (req,res) =>{
+  const sub = req.subscriber;
+  const unAvailableCommands = _.map(sub.metrics,(m)=>m.command).join(',');
+  res.render('metrics_add_edit', { unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric:{}, errors: [] }); 
 });
 
-app.post('/metrics/add', parseForm, csrfProtection, (req, res) =>{
+app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =>{
   var errors = {};
   var metric = req.body;
   delete metric._csrf;
 
-  log(metric);
-
   if(!metric.name){
     errors.name = 'Please enter a name.';
-  }
-
-  if(metric.name.indexOf(' ')>-1){
-    const nspe = 'Name cannot contain spaces';
-    errors.name = errors.name ? errors.name + ". " + nspe : nspe;
   }
 
   if(!metric.command){
@@ -74,85 +75,130 @@ app.post('/metrics/add', parseForm, csrfProtection, (req, res) =>{
   }
 
   if(metric.command.indexOf(' ')>-1){
-    const nspe = 'Command cannot contain spaces (and it should be short and unique  )';
+    const nspe = 'Command cannot contain spaces (and it should be short and unique across all metrics)';
+    errors.command = errors.command ? errors.command + ". " + nspe : nspe;
+  }
+
+  const m = _.find(req.subscriber.metrics, (m) => m.command.toLowerCase() === metric.command.toLowerCase() && 
+                                                  m.name !== metric.name);
+
+  if(m){
+    const nspe = `Command is already in use by metric <b>${m.name}</b>`;
     errors.command = errors.command ? errors.command + ". " + nspe : nspe;
   }
 
   if(!metric.units){
-    errors.units = 'Please enter units (e.g. "Kg")';
+    errors.units = 'Please enter units (e.g. "Kg"). If defining a multi-value metric, enter all units separated by ",". (e.g. Kg,Km,m/s)';
   }
 
-  if(metric.validate && metric.validate === 'on'){
-    if(_.isNaN(Number(metric.min)) || _.isNaN(Number(metric.max))){
-      errors.validate = 'If validation is enabled, "MIN" and "MAX" must be valid numbers';
+  //If min & max are empty, then  no validation is applied
+  //To validate a value in a metric, enter both min AND max
+  if(metric.min || metric.max){
+    //If something is entered on min or max it could be an array or a scalar
+    //if scalar -> metric is single valued
+    //if array ->  metric is mutlivalued and each value of the array is the
+    metric.min = metric.min.split(',');
+    metric.max = metric.max.split(',');
+    metric.units = metric.units.split(',');
+
+    if( (metric.min.length + metric.max.length + metric.units.length ) % 3 !== 0 ){
+      errors.max = errors.min = "When using multivalued metrics, UNITS, MIN and MAX must contain the same number of values";
+    } else {
+
+      if(metric.min.length===1){
+        //Scalar
+        metric.min = metric.min[0];
+        metric.max = metric.max[0];
+        metric.units = metric.units[0];
+        metric.validate = true;
+        delete metric.multivalue;
+      } else {
+        metric.validate = _.map(metric.min, (i) => i && !_.isNaN(Number(i)) ? true : false);
+        metric.multivalue =  metric.min.length;
+      }
     }
+  } else {
+    //No min or max -> no validation
+    delete metric.validation;
   }
 
   if(_.some(errors)){
-    return res.render('metrics_add_edit', {errors: errors, metric: metric, csrfToken: req.csrfToken()}); 
+    return res.render('metrics_add_edit', {
+                                            unAvailableCommands: metric.unAvailableCommands, 
+                                            errors: errors, 
+                                            metric: metric, 
+                                            csrfToken: req.csrfToken()
+                                          }); 
   }
+
+  delete metric.unAvailableCommands;
 
   domain.addMetric(req.session.user.sub, metric, (e, s) =>{
     res.render('metrics', {metrics: s.metrics}); 
   });
 });
 
-app.get('/metrics/logs/:name?', csrfProtection, (req, res) =>{
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
-    if(!s.metrics || s.metrics.length === 0){
-      return res.render('logs', {name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
-    }
+app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res) =>{
+  if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
+    return res.render('logs', {name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
+  }
 
-    const metricName = req.params.name || s.metrics[0].name;
-    const page = req.query.page || 0;
+  const metricName = req.params.name || req.subscriber.metrics[0].name;
+  const page = req.query.page || 0;
 
-    domain.getLogsByPhone(s.phone, metricName, page, (e, l) =>{
-      res.render('logs', {name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
-    });
+  domain.getLogsByPhone(req.subscriber.phone, metricName, page, (e, l) =>{
+    res.render('logs', {name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
   });
 });
 
 app.post('/metrics/logs', parseForm, csrfProtection, (req, res) =>{
-  log(req.body);
   const name = req.body.name;
   res.redirect('/web/metrics/logs/' + name);
 });
 
-app.get('/metrics/summary/:name', (req, res) =>{
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
-    
-    const metricName = req.params.name;
-
-    const metric = _.find(s.metrics, (m) => m.name === metricName);
-
-    domain.getMetricSummary(s.phone, metricName, 30, (e,summary) => {
-      res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
-    });
+app.get('/metrics/logs/delete/:name/:id', subscriberById, (req, res) =>{
+  domain.deleteLogEntry(req.subscriber.phone, req.params.id, (e) =>{
+    res.redirect(`/web/metrics/logs/${req.params.name}`);
   });
 });
 
-app.get('/metrics/chart/:name?', csrfProtection, (req, res) =>{
-  domain.getSubscriberById(req.session.user.sub, (e, s)=>{
-    if(!s.metrics || s.metrics.length === 0){
-      return res.render('metric_chart', {name: 'No metrics defined yet!', logs: [], csrfToken: req.csrfToken()});
-    }
+app.get('/metrics/summary/:name', subscriberById, (req, res) =>{
+  const metricName = req.params.name;
 
-    const metricName = req.params.name || s.metrics[0].name;
-    
-    const metric = _.find(s.metrics, (i) => i.name === metricName);
+  const metric = _.find(s.metrics, (m) => m.name === metricName);
 
-    domain.getLogsInLastDaysByPhone(s.phone, metricName, 120, (e, logs) =>{
-      const data = _.map(logs, (l) => {
-        return {
-          t: moment(l.createdAt).format('MM/DD/YYYY HH:MM'),
-          y: l.value
-        };
-      });
+  domain.getMetricSummary(req.subscriber.phone, metricName, 30, (e,summary) => {
+    res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
+  });
+});
 
-      log(data);
+app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
+  
+  if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
+    return res.render('metric_chart', {name: 'No metrics defined yet!', logs: [], csrfToken: req.csrfToken()});
+  }
 
-      res.render('metric_chart', {name: metricName, units: metric.units, labels: _.map(data, (d)=> d.t), logs: data, csrfToken: req.csrfToken() });
+  const metricName = req.params.name || s.metrics[0].name;
+  
+  const metric = _.find(req.subscriber.metrics, (i) => i.name === metricName);
+
+  domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, 120, (e, logs) =>{
+    const data = _.map(logs, (l) => {
+      return {
+        t: moment(l.createdAt)
+            .tz(req.subscriber.tz || 'America/Los_Angeles')
+            .format('MM/DD/YYYY HH:MM'),
+        y: l.value
+      };
     });
+
+    res.render('metric_chart', {
+                                name: metricName, 
+                                units: metric.units, 
+                                labels: _.map(data, (d)=> d.t), 
+                                logs: data, 
+                                csrfToken: req.csrfToken() 
+                              });
   });
 });
 

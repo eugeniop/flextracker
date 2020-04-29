@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const session = require('express-session');
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
@@ -24,7 +23,7 @@ server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 const config = {
   appSession: false,
   required: false,
-  auth0Logout: false,
+  auth0Logout: true,
   baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
   authorizationParams: {
@@ -35,16 +34,21 @@ const config = {
   },
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
-  handleCallback: async function (req, res, next) {
+  handleCallback: function (req, res, next) {
     // Store recevied tokens (access and ID in this case) in server-side storage.
     req.session.user = req.openidTokens.claims();
     req.session.openidTokens = req.openidTokens;
     server.locals.user = req.session.user;
     next();
   },
-  getUser: async function (req) {
+  getUser: function (req) {
     return req.session.user;
-  }
+  },
+  getLoginState: function (req, options) {
+    return {
+      returnTo: req.originalUrl,
+    };
+  },
 };
 
 //App modules
@@ -77,8 +81,7 @@ server.get("/", (req, res) => {
   res.redirect('/web');
 });
 
-
-// API
+// API security
 const jwtCheck = jwt({
       secret: jwks.expressJwtSecret({
           cache: true,
@@ -94,7 +97,7 @@ const jwtCheck = jwt({
 // All API require a bearer token
 server.use('/api', jwtCheck, api);
 
-// SMS handler
+// SMS handler (uses its own security)
 server.use('/sms', sms);
 
 server.listen(server.get('port'), function() {

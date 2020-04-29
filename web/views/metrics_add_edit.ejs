@@ -12,6 +12,7 @@
             <div class="card-body">
               <form action='/web/metrics/add' method=post novalidate>
                 <input type="hidden" name="_csrf" value="<%- csrfToken%>">
+                <input type="hidden" name="unAvailableCommands" value="<%- unAvailableCommands%>">
                 <div class="form-group">
                   <label for="name">Name</label>
                   <input type="text" class="form-control" id="name" name='name' aria-describedby="nameHelp" placeholder="Enter a name (no spaces)" value='<%-metric.name%>'>
@@ -21,7 +22,7 @@
                 </div>
                 <div class="form-group">
                   <label for="units">Command</label>
-                  <input type="text" class="form-control" id="command" name='command' value='<%-metric.command%>' placeholder="The command to be sent by phone">
+                  <input type="text" class="form-control" id="command" name='command' value='<%-metric.command%>' placeholder="The command to be sent by phone. Unavailable: <%-unAvailableCommands%>" >
                   <%if(errors.command){%>
                     <small id="commandHelp" class="form-text text-danger"><%-errors.command%></small>
                   <%}%>
@@ -33,13 +34,6 @@
                     <small id="unitsHelp" class="form-text text-danger"><%-errors.units%></small>
                   <%}%>
                 </div>
-                <div class="form-check">
-                  <input type="checkbox" class="form-check-input" id="validate" name='validate' <%if(metric.validate){%><%-"checked"%><%}%>>
-                  <label class="form-check-label" for="validate">Validate on save</label>
-                  <%if(errors.validate){%>
-                    <small id="unitsHelp" class="form-text text-danger"><%-errors.validate%></small>
-                  <%}%>
-                </div>
                 <div class="form-group">
                   <label for="min">Min</label>
                   <input type="numeric" class="form-control" id="min" name='min' value='<%- metric.min%>' placeholder="Minimum value for the metric (only needed if validate=true)">
@@ -47,6 +41,11 @@
                 <div class="form-group">
                   <label for="max">Max</label>
                   <input type="numeric" class="form-control" id="max" name='max' value='<%-metric.max%>' placeholder="Maximum value for the metric (only needed if validate=true)">
+                </div>
+                <div>
+                  <%if(errors.min){%>
+                    <small id="minHelp" class="form-text text-danger"><%-errors.min%></small>
+                  <%}%>
                 </div>
                 <a class="btn btn-danger" href='/web/metrics/'>Cancel</a>
                 <button type="submit" class="btn btn-primary">Submit</button>

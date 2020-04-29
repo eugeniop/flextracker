@@ -2,6 +2,7 @@ var domain = module.exports;
 
 const async = require('async');
 const _ = require('lodash');
+const { ObjectID } = require('mongodb');
 
 const { log } = console;
 
@@ -102,16 +103,12 @@ domain.addMetric = (sub, metric, done) =>{
 
   //Validate metric
   if(!metric){ return done("No metric definition"); }
-  if(!metric.name || metric.name.indexOf(' ')>-1){ return done("Name is missing or contains spaces"); }
+  if(!metric.name){ return done("Name is missing or contains spaces"); }
   if(!metric.units){ return done("Units are required"); }
   
-  if(metric.validate === false){
+  if(!metric.validate){
     delete metric.min;
     delete metric.max;
-  } else {
-    if(_.isNaN(metric.min) || _.isNaN(metric.max) ){
-      return done('With validation enbaled, MAX and MIN miust be valid numbers');
-    }
   }
 
   var locals = {};
@@ -170,7 +167,11 @@ domain.addMetric = (sub, metric, done) =>{
   
   {metric command} is defined and should exist in subscriber.metrics
 
-  {value} is asumed numeric and checked against {min} and {max} in the metric definition
+  {value} is asumed numeric and checked against {min} and {max} in the metric definition.
+
+  If the metric is multi-valued, the expected format is:
+
+  {metric command} {value-0} {value-1} ... {value-n} {extra content}
 
 */
 domain.saveSample = (subscriber, command, done) => {
@@ -178,39 +179,93 @@ domain.saveSample = (subscriber, command, done) => {
   if(!command){ return done("ERROR. No arguments"); }
 
   const args = command.split(' ');
-
   const metric = _.find(subscriber.metrics, (m) => m.command.toLowerCase() === args[0].toLowerCase());
 
-  if(!metric){ return done("ERROR. Undefined metric"); }
+  if(!metric){ return done(`ERROR. No metric associated with command: ${args[0]}`); }
 
-  const value = Number(args[1]);
+  var msg = ""
 
-  if(_.isNaN(value)){ return done("ERROR. The value is not numeric or is empty"); }
+  if(!metric.multivalue){
 
-  if(metric.validate && (value < metric.min || value > metric.max)){
-    return done(`ERROR. ${value} is an invalid value. Valid ranges:\nMin: ${metric.min}\nMax: ${metric.max}`);
+    //Save a single value sample
+    const value = Number(args[1]);
+
+    if(_.isNaN(value)){ return done("ERROR. The value is not numeric or is empty"); }
+
+    if(metric.validate && (value < metric.min || value > metric.max)){
+      return done(`ERROR. ${value} is an invalid value. Valid ranges:\nMin: ${metric.min}\nMax: ${metric.max}`);
+    } else {
+
+      var event = {
+        event: metric.name,
+        value: value,
+        notes: _.join(_.slice(args,2), " "),
+        createdAt: new Date(),
+      };
+    }
+
+    msg = `${value} ${metric.units}`;
+
   } else {
 
+    //Multivalue metric. Each value can have its own range validation
+    /*
+      metric.multivalue returns the number of expected values
+      validate and min/max are array
+      
+      For example:
+      metric with 3 values. value[0] and value[2] are validated in a range, but not value[1]
+      validate = [true, false, true]
+      min = [0, 0, -10]
+      max = [10, 0, 10]
+
+      value[0] can only between 0 and 10
+      value[1] can be any value
+      value[2] can only be between -10 and 10
+
+    */
+    if(args.length < metric.multivalue + 1){
+      return done(null, `Metric ${metric.name} expects at least ${metric.multivalue} values`);
+    }
+
+    var values = [];
+
+    for(var i=0; i<metric.multivalue; i++){
+      if(metric.validate[i]){
+        const value = Number(args[i+1]);
+        if(_.isNaN(value)){ return done(`ERROR. ${value} is not a valid numeric value`); }
+        if(value < metric.min[i] || value > metric.max[i]){
+          return done(`ERROR. ${value} is outside the valid range (${metric.min[i]} - ${metric.max[i]})`);
+        }
+        values.push(value);
+      }else{
+        values.push(args[i+1]);
+      }
+    }
+    //All good, save
     var event = {
       event: metric.name,
-      value: value,
-      notes: _.join(_.slice(args,2), " "),
+      value: values,
+      notes: _.join(_.slice(args, metric.multivalue), " "), //Anything after the values we save as notes
       createdAt: new Date(),
     };
 
-    db.connectDb((err, client) => {
-    if(err) return done("Cannot connect to Database", err);
-    client.db()
-      .collection(getSamplesCollectionName(subscriber.phone))
-        .insertMany([event], (err, r) => {
-          client.close();
-          if(err){
-            return done('Recording event(s) failed. Please try again');
-          }
-          done(null, `New ${event.event} value saved.`);
-        });
-    });
+    msg = _.zipWith(event.value, metric.units, (v,u)=> v + " " + u);
   }
+
+  db.connectDb((err, client) => {
+  if(err){ return done("Cannot connect to Database", err); }
+  client.db()
+    .collection(getSamplesCollectionName(subscriber.phone))
+      .insertMany([event], (err, r) => {
+        client.close();
+        if(err){
+          return done('Recording event(s) failed. Please try again');
+        }
+
+        return done(null, `New ${event.event} value(s) saved: ${msg}`);
+      });
+  });
 };
 
 domain.getLogsByPhone = (phone, metricName, page, done) =>{
@@ -221,6 +276,18 @@ domain.getLogsByPhone = (phone, metricName, page, done) =>{
       if(err) return done(err);
       done(null, data);
     });
+};
+
+domain.deleteLogEntry = (phone, id, done) =>{
+  db.connectDb((err, client) => {
+    if(err){ return done("Cannot connect to Database", err); }
+    client.db()
+      .collection(getSamplesCollectionName(phone))
+      .delete({ _id: new ObjectID(id) }, (e) =>{
+        if(e){ return done("Error deleting log entry: " + err); }
+        done(null);
+      });
+  });
 };
 
 function getSamplesCollectionName(phone){
