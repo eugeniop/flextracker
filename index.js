@@ -30,7 +30,7 @@ const config = {
     response_type: "code",
     scope: "openid profile",
     audience: "https://flextracker",
-    // response_mode: "query"
+    response_mode: "query"
   },
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
