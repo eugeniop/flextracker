@@ -43,56 +43,87 @@
 
               <!-- Page level custom scripts -->
               <script>
-                  // Set new default font family and font color to mimic Bootstrap's default styling
-                  Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
-                  Chart.defaults.global.defaultFontColor = '#858796';
+// Set new default font family and font color to mimic Bootstrap's default styling
+Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+Chart.defaults.global.defaultFontColor = '#858796';
 
-                  function number_format(number, decimals, dec_point, thousands_sep) {
-                    // *     example: number_format(1234.56, 2, ',', ' ');
-                    // *     return: '1 234,56'
-                    number = (number + '').replace(',', '').replace(' ', '');
-                    var n = !isFinite(+number) ? 0 : +number,
-                      prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
-                      sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
-                      dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
-                      s = '',
-                      toFixedFix = function(n, prec) {
-                        var k = Math.pow(10, prec);
-                        return '' + Math.round(n * k) / k;
-                      };
-                    // Fix for IE parseFloat(0.55).toFixed(0) = 0;
-                    s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
-                    if (s[0].length > 3) {
-                      s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
-                    }
-                    if ((s[1] || '').length < prec) {
-                      s[1] = s[1] || '';
-                      s[1] += new Array(prec - s[1].length + 1).join('0');
-                    }
-                    return s.join(dec);
-                  }
+function number_format(number, decimals, dec_point, thousands_sep) {
+  // *     example: number_format(1234.56, 2, ',', ' ');
+  // *     return: '1 234,56'
+  number = (number + '').replace(',', '').replace(' ', '');
+  var n = !isFinite(+number) ? 0 : +number,
+    prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+    sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+    dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+    s = '',
+    toFixedFix = function(n, prec) {
+      var k = Math.pow(10, prec);
+      return '' + Math.round(n * k) / k;
+    };
+  // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+  s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+  if (s[0].length > 3) {
+    s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+  }
+  if ((s[1] || '').length < prec) {
+    s[1] = s[1] || '';
+    s[1] += new Array(prec - s[1].length + 1).join('0');
+  }
+  return s.join(dec);
+}
 
-                  // Area Chart Example
+var data = <%-JSON.stringify(data)%>;
+
+function getTimeLabels(){
+  return data[0].map(function(i){ return i.t; });  
+}
+
+function getDataSets(){
+  var datasets = [];
+
+  console.log(data.length);
+
+  for(var i=0; i < data.length; i++){
+    datasets.push(
+      {
+        label: "Value " + i,
+        lineTension: 0.3,
+        backgroundColor: color_index[i], 
+        borderColor: color_index[i], 
+        pointRadius: 3,
+        pointBackgroundColor: color_index[i],
+        pointBorderColor: color_index[i], 
+        pointHoverRadius: 3,
+        pointHoverBackgroundColor: color_index[i], 
+        pointHoverBorderColor: color_index[i],
+        pointHitRadius: 10,
+        pointBorderWidth: 2,
+        data: data[i],
+        fill: null
+      }
+    );
+  }
+  return datasets;
+};
+
+var colors = {
+  red: 'rgb(255, 99, 132)',
+  orange: 'rgb(255, 159, 64)',
+  yellow: 'rgb(255, 205, 86)',
+  green: 'rgb(75, 192, 192)',
+  blue: 'rgb(54, 162, 235)',
+  purple: 'rgb(153, 102, 255)',
+  grey: 'rgb(201, 203, 207)'
+};
+
+var color_index = [colors.purple, colors.blue, colors.grey, colors.red, colors.orange];
+
 var ctx = document.getElementById("metricChart");
 var myLineChart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: <%-JSON.stringify(labels)%>,
-    datasets: [{
-      label: "<%-name%>",
-      lineTension: 0.3,
-      backgroundColor: "rgba(78, 115, 223, 0.05)",
-      borderColor: "rgba(78, 115, 223, 1)",
-      pointRadius: 3,
-      pointBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointBorderColor: "rgba(78, 115, 223, 1)",
-      pointHoverRadius: 3,
-      pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-      pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-      pointHitRadius: 10,
-      pointBorderWidth: 2,
-      data: <%-JSON.stringify(logs)%>
-    }],
+    labels: getTimeLabels(),
+    datasets: getDataSets()
   },
   options: {
     maintainAspectRatio: false,
@@ -106,9 +137,9 @@ var myLineChart = new Chart(ctx, {
     },
     scales: {
       xAxes: [{
-        time: {
-          unit: 'days'
-        },
+        // time: {
+        //  unit: 'minutes'
+        //},
         gridLines: {
           display: true,
           drawBorder: true
@@ -122,7 +153,7 @@ var myLineChart = new Chart(ctx, {
           maxTicksLimit: 5,
           padding: 10,
           callback: function(value, index, values) {
-            return number_format(value, 1) + " <%-units%>";
+            return number_format(value, 1) + " <%-units.join('/')%>";
           }
         },
         scaleLabel: {
@@ -139,7 +170,7 @@ var myLineChart = new Chart(ctx, {
       }],
     },
     legend: {
-      display: false
+      display: true
     },
     tooltips: {
       backgroundColor: "rgb(255,255,255)",
@@ -157,8 +188,9 @@ var myLineChart = new Chart(ctx, {
       caretPadding: 10,
       callbacks: {
         label: function(tooltipItem, chart) {
+          var units =  <%-JSON.stringify(units)%>;
           var datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
-          return datasetLabel + ': ' + number_format(tooltipItem.yLabel, 1) + " <%-units%>";
+          return datasetLabel + ': ' + number_format(tooltipItem.yLabel, 1) + " " + units[tooltipItem.datasetIndex];
         }
       }
     }

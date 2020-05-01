@@ -38,13 +38,13 @@ app.get('/metrics', subscriberById, (req, res) =>{
     })
   } else {
     //_.filter(s.metrics, (m) => !m.multivalue)
-    res.render('metrics', {metrics: req.subscriber.metrics || []});
+    res.render('metrics', {metrics: _.sortBy(req.subscriber.metrics, 'name') || []});
   }
 });
 
 app.get('/metrics/delete/:name', (req, res) =>{
   domain.deleteMetric(req.session.user.sub, req.params.name, (e,s) =>{
-    res.render('metrics', {metrics: s.metrics || []}); 
+    res.redirect('/web/metrics');
   });
 });
 
@@ -89,6 +89,8 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =
 
   if(!metric.units){
     errors.units = 'Please enter units (e.g. "Kg"). If defining a multi-value metric, enter all units separated by ",". (e.g. Kg,Km,m/s)';
+  } else {
+    metric.units = metric.units.split(',');
   }
 
   //If min & max are empty, then  no validation is applied
@@ -99,27 +101,18 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =
     //if array ->  metric is mutlivalued and each value of the array is the
     metric.min = metric.min.split(',');
     metric.max = metric.max.split(',');
-    metric.units = metric.units.split(',');
 
     if( (metric.min.length + metric.max.length + metric.units.length ) % 3 !== 0 ){
       errors.max = errors.min = "When using multivalued metrics, UNITS, MIN and MAX must contain the same number of values";
     } else {
-
-      if(metric.min.length===1){
-        //Scalar
-        metric.min = metric.min[0];
-        metric.max = metric.max[0];
-        metric.units = metric.units[0];
-        metric.validate = true;
-        delete metric.multivalue;
-      } else {
-        metric.validate = _.map(metric.min, (i) => i && !_.isNaN(Number(i)) ? true : false);
-        metric.multivalue =  metric.min.length;
-      }
+      metric.validate = _.map(metric.min, (i) => i && !_.isNaN(Number(i)) ? true : false);
+      log(metric.validate);
     }
-  } else {
+  } else {    
     //No min or max -> no validation
-    delete metric.validation;
+    delete metric.min;
+    delete metric.max;
+    delete metric.validate;
   }
 
   if(_.some(errors)){
@@ -134,7 +127,7 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =
   delete metric.unAvailableCommands;
 
   domain.addMetric(req.session.user.sub, metric, (e, s) =>{
-    res.render('metrics', {metrics: s.metrics}); 
+    res.redirect('/web/metrics/');
   });
 });
 
@@ -172,6 +165,40 @@ app.get('/metrics/summary/:name', subscriberById, (req, res) =>{
   });
 });
 
+// app.get('/metrics/testchart', csrfProtection, (req, res) =>{
+  
+//   domain.getLogsInLastDaysByPhone("+14252832118", "Blood Pressure", 120, (e, logs) =>{
+
+//     var metric = {
+//       units: ["mmHg", "mmHg", "bps"]
+//     };
+
+//     var data = [];
+
+//     for(var i=0; i < metric.units.length; i++){
+//       data.push(_.map(logs, (l) => {
+//                                       return {
+//                                         t: moment(l.createdAt)
+//                                             .tz('America/Los_Angeles')
+//                                             .format('MM/DD/YYYY HH:MM'),
+//                                         y: l.value[i]
+//                                       };
+//                     }));
+//     }
+
+//     log(data);
+
+//     res.render('chart', {
+//                           user: 'EP',
+//                           name: 'Blood Pressure', 
+//                           units: metric.units,
+//                           data: data, 
+//                           csrfToken: req.csrfToken() 
+//                         });
+//   });
+// });
+
+
 app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
   
   if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
@@ -182,23 +209,26 @@ app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
   
   const metric = _.find(req.subscriber.metrics, (i) => i.name === metricName);
 
-  domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, 120, (e, logs) =>{
-    const data = _.map(logs, (l) => {
-      return {
-        t: moment(l.createdAt)
-            .tz(req.subscriber.tz || 'America/Los_Angeles')
-            .format('MM/DD/YYYY HH:MM'),
-        y: l.value
-      };
-    });
+  domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, 240, (e, logs) =>{
+    var data = [];
+
+    for(var i=0; i < metric.units.length; i++){
+      data.push(_.map(logs, (l) => {
+                                      return {
+                                        t: moment(l.createdAt)
+                                            .tz('America/Los_Angeles')
+                                            .format('MM/DD/YYYY HH:MM'),
+                                        y: Array.isArray(l.value) ? l.value[i] : l.value // this check is legacy from when we stored scalars. Now all metrics are arrays
+                                      };
+                    }));
+    }
 
     res.render('metric_chart', {
-                                name: metricName, 
-                                units: metric.units, 
-                                labels: _.map(data, (d)=> d.t), 
-                                logs: data, 
-                                csrfToken: req.csrfToken() 
-                              });
+                          name: metric.name, 
+                          units: metric.units,
+                          data: data, 
+                          csrfToken: req.csrfToken() 
+                        });
   });
 });
 

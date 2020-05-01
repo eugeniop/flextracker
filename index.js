@@ -30,12 +30,13 @@ const config = {
     response_type: "code",
     scope: "openid profile",
     audience: "https://flextracker",
-    response_mode: "query"
+    // response_mode: "query"
   },
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
   handleCallback: function (req, res, next) {
     // Store recevied tokens (access and ID in this case) in server-side storage.
+    log(req.openidTokens);
     req.session.user = req.openidTokens.claims();
     req.session.openidTokens = req.openidTokens;
     server.locals.user = req.session.user;
@@ -46,7 +47,7 @@ const config = {
   },
   getLoginState: function (req, options) {
     return {
-      returnTo: req.originalUrl,
+      returnTo: req.originalUrl,  // redirect to the original page the user was browsing
     };
   },
 };

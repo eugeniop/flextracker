@@ -101,14 +101,21 @@ domain.deleteMetric = (sub, metricName, done) =>{
 
 domain.addMetric = (sub, metric, done) =>{
 
+  log(metric);
+
   //Validate metric
-  if(!metric){ return done("No metric definition"); }
-  if(!metric.name){ return done("Name is missing or contains spaces"); }
-  if(!metric.units){ return done("Units are required"); }
-  
-  if(!metric.validate){
-    delete metric.min;
-    delete metric.max;
+  if(!metric){ return done("No metric definition."); }
+  if(!metric.command){ return done("Command is missing."); }
+  if(!metric.name){ return done("Name is missing."); }
+  if(!metric.units || metric.units.length === 0){ return done("Units are required"); }
+
+  //If MIN and MAX are specified, they need to be arrays and with the same length as UNITS
+  if(metric.min || metric.max){
+
+    if(!Array.isArray(metric.min) || !Array.isArray(metric.max) 
+        || (metric.min.length + metric.max.length + metric.units.length + metric.validate.length) % 4 !== 0){
+      return done("MIN, MAX and UNITS need to be the same length");
+    }
   }
 
   var locals = {};
@@ -185,73 +192,47 @@ domain.saveSample = (subscriber, command, done) => {
 
   var msg = ""
 
-  if(!metric.multivalue){
+  /*
+    Metrics can have many values.
 
-    //Save a single value sample
-    const value = Number(args[1]);
+    For example, a metric with 3 values. value[0] and value[2] are validated in a range, but not value[1]
+    
+    validate = [true, false, true]
+    min = [0, 0, -10]
+    max = [10, 0, 10]
 
-    if(_.isNaN(value)){ return done("ERROR. The value is not numeric or is empty"); }
+    value[0] can only between 0 and 10
+    value[1] can be any value
+    value[2] can only be between -10 and 10
 
-    if(metric.validate && (value < metric.min || value > metric.max)){
-      return done(`ERROR. ${value} is an invalid value. Valid ranges:\nMin: ${metric.min}\nMax: ${metric.max}`);
-    } else {
+  */
+  if(args.length < metric.units.length + 1){
+    return done(null, `Metric ${metric.name} expects at least ${metric.units.length} values`);
+  }
 
-      var event = {
-        event: metric.name,
-        value: value,
-        notes: _.join(_.slice(args,2), " "),
-        createdAt: new Date(),
-      };
-    }
+  var values = [];
 
-    msg = `${value} ${metric.units}`;
-
-  } else {
-
-    //Multivalue metric. Each value can have its own range validation
-    /*
-      metric.multivalue returns the number of expected values
-      validate and min/max are array
-      
-      For example:
-      metric with 3 values. value[0] and value[2] are validated in a range, but not value[1]
-      validate = [true, false, true]
-      min = [0, 0, -10]
-      max = [10, 0, 10]
-
-      value[0] can only between 0 and 10
-      value[1] can be any value
-      value[2] can only be between -10 and 10
-
-    */
-    if(args.length < metric.multivalue + 1){
-      return done(null, `Metric ${metric.name} expects at least ${metric.multivalue} values`);
-    }
-
-    var values = [];
-
-    for(var i=0; i<metric.multivalue; i++){
-      if(metric.validate[i]){
-        const value = Number(args[i+1]);
-        if(_.isNaN(value)){ return done(`ERROR. ${value} is not a valid numeric value`); }
-        if(value < metric.min[i] || value > metric.max[i]){
-          return done(`ERROR. ${value} is outside the valid range (${metric.min[i]} - ${metric.max[i]})`);
-        }
-        values.push(value);
-      }else{
-        values.push(args[i+1]);
+  for(var i=0; i<metric.units.length; i++){
+    const value = Number(args[i+1]);
+    if(metric.validate[i]){
+      log('validating', value, metric.min[i], metric.max[i]);
+      if(_.isNaN(value)){ return done(`ERROR. ${value} is not a valid numeric value`); }
+      if(value < metric.min[i] || value > metric.max[i]){
+        return done(`ERROR. ${value} is outside the valid range (${metric.min[i]} - ${metric.max[i]})`);
       }
     }
-    //All good, save
-    var event = {
-      event: metric.name,
-      value: values,
-      notes: _.join(_.slice(args, metric.multivalue), " "), //Anything after the values we save as notes
-      createdAt: new Date(),
-    };
-
-    msg = _.zipWith(event.value, metric.units, (v,u)=> v + " " + u);
+    values.push(value);
   }
+  
+  //All good, save
+  var event = {
+    event: metric.name,
+    value: values,
+    notes: _.join(_.slice(args, metric.units.length), " "), //Anything after the values we save as notes
+    createdAt: new Date(),
+  };
+
+  msg = _.zipWith(event.value, metric.units, (v,u)=> v + " " + u);
 
   db.connectDb((err, client) => {
   if(err){ return done("Cannot connect to Database", err); }
@@ -283,7 +264,7 @@ domain.deleteLogEntry = (phone, id, done) =>{
     if(err){ return done("Cannot connect to Database", err); }
     client.db()
       .collection(getSamplesCollectionName(phone))
-      .delete({ _id: new ObjectID(id) }, (e) =>{
+      .deleteOne({ _id: new ObjectID(id) }, (e) =>{
         if(e){ return done("Error deleting log entry: " + err); }
         done(null);
       });
