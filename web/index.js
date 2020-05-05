@@ -30,10 +30,11 @@ app.get('/', subscriberById, (req, res) => {
   res.render('home', { userWithNoMetrics: !(sub && sub.metrics && sub.metrics.length > 0) });
 });
 
-app.get('/metrics', subscriberById, (req, res) =>{
+app.get('/metrics', subscriberById, (req, res, next) =>{
   if(!req.subscriber){
     //Bootstrap subscriber in the database
     domain.createSubscriber(req.session.user.sub, req.session.user.name, (e) =>{
+      if(e) { return next(e); }
       return res.render('metrics', {metrics: []});    
     })
   } else {
@@ -42,8 +43,9 @@ app.get('/metrics', subscriberById, (req, res) =>{
   }
 });
 
-app.get('/metrics/delete/:name', (req, res) =>{
+app.get('/metrics/delete/:name', (req, res, next) =>{
   domain.deleteMetric(req.session.user.sub, req.params.name, (e,s) =>{
+    if(e) { return next(e) };
     res.redirect('/web/metrics');
   });
 });
@@ -61,7 +63,7 @@ app.get('/metrics/add', subscriberById, csrfProtection, (req,res) =>{
   res.render('metrics_add_edit', { unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric:{}, errors: [] }); 
 });
 
-app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =>{
+app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res, next) =>{
   var errors = {};
   var metric = req.body;
   delete metric._csrf;
@@ -127,11 +129,56 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res) =
   delete metric.unAvailableCommands;
 
   domain.addMetric(req.session.user.sub, metric, (e, s) =>{
+    if(e){ return next(e); }
     res.redirect('/web/metrics/');
   });
 });
 
-app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res) =>{
+// Share metric to community
+app.get('/metrics/share/:name', subscriberById, csrfProtection, (req,res,next) =>{
+  const sub = req.subscriber;
+  const metric = _.find(req.subscriber.metrics, (m) => m.name === req.params.name);
+  if(!metric){ return next("Invalid metric"); }
+  res.render('metric_share', { csrfToken: req.csrfToken(), metric: metric, categories: ['Health', 'Nature', 'Fitness'] }); 
+});
+
+app.post('/metrics/share', subscriberById, parseForm, csrfProtection, (req, res, next) =>{
+  var { name, category } = req.body;
+  const metric = _.find(req.subscriber.metrics, (m) => m.name === name);
+  if(!metric){ return next("Invalid metric"); }
+  
+  domain.shareMetric(req.session.user.sub, category, metric, (e, s) =>{
+    if(e){ return next(e); }
+    res.redirect('/web/metrics/');
+  });
+});
+
+// COMMUNITY-----
+app.get('/community', subscriberById, (req, res, next) => {
+  const category = req.query.category || "health";
+  const page = req.query.page || 0;
+  domain.getCommunityMetrics(category, page, (e,metrics) => {
+    if(e){ return next(e); }
+    return res.render('community', { page: page, metrics: metrics });  
+  });
+});
+
+app.get('/community/delete/:name/:category', subscriberById, (req, res, next) => {
+  domain.deleteSharedMetric(req.subscriber.sub, req.params.category, req.params.name, (e) => {
+    if(e){ return next(e); }
+    return res.redirect('/web/community');
+  });
+});
+
+app.get('/community/add/:id', subscriberById, (req, res, next) => {
+  domain.addCommunityMetric(req.params.id, req.subscriber.sub, (e) => {
+    if(e){ return next(e); }
+    return res.redirect('/web/metrics');
+  });
+});
+
+// LOGS ---------
+app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res, next) =>{
   if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
     return res.render('logs', {name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
   }
@@ -140,6 +187,7 @@ app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res) =>{
   const page = req.query.page || 0;
 
   domain.getLogsByPhone(req.subscriber.phone, metricName, page, (e, l) =>{
+    if(e){ return next(e); }
     res.render('logs', {name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
   });
 });
@@ -149,18 +197,20 @@ app.post('/metrics/logs', parseForm, csrfProtection, (req, res) =>{
   res.redirect('/web/metrics/logs/' + name);
 });
 
-app.get('/metrics/logs/delete/:name/:id', subscriberById, (req, res) =>{
+app.get('/metrics/logs/delete/:name/:id', subscriberById, (req, res, next) =>{
   domain.deleteLogEntry(req.subscriber.phone, req.params.id, (e) =>{
+    if(e){ return next(e); }
     res.redirect(`/web/metrics/logs/${req.params.name}`);
   });
 });
 
-app.get('/metrics/summary/:name', subscriberById, (req, res) =>{
+app.get('/metrics/summary/:name', subscriberById, (req, res, next) =>{
   const metricName = req.params.name;
 
   const metric = _.find(s.metrics, (m) => m.name === metricName);
 
   domain.getMetricSummary(req.subscriber.phone, metricName, 30, (e,summary) => {
+    if(e){ return next(e); }
     res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
   });
 });
@@ -199,7 +249,7 @@ app.get('/metrics/summary/:name', subscriberById, (req, res) =>{
 // });
 
 
-app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
+app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res, next) =>{
   
   if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
     return res.render('metric_chart', {name: 'No metrics defined yet!', logs: [], csrfToken: req.csrfToken()});
@@ -210,6 +260,7 @@ app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
   const metric = _.find(req.subscriber.metrics, (i) => i.name === metricName);
 
   domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, 240, (e, logs) =>{
+    if(e){ return next(e); }
     var data = [];
 
     for(var i=0; i < metric.units.length; i++){
@@ -235,4 +286,8 @@ app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res) =>{
 app.post('/metrics/chart', parseForm, csrfProtection, (req, res) =>{
   const name = req.body.name;
   res.redirect('/web/metrics/chart/' + name);
+});
+
+app.use((error, req, res, next) => {
+  res.render("error", {error: error});
 });

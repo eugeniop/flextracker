@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 const { log } = console;
 
 const subscribers_collection = 'subscribers';
+const shared_metrics_collection = 'community_metrics'
 const log_collection_prefix = 'events_';
 
 const db = require('./db.js');
@@ -79,8 +80,83 @@ domain.createSubscriber = (sub, phone, done) => {
   });
 };
 
+domain.shareMetric = (sub, category, metric, done) => {
+  db.connectDb((e,client)=>{
+    if(e){ return done(e); }
+    const cat = category.toLowerCase();
+    client.db()
+          .collection(shared_metrics_collection)
+          .update({
+                    sub: sub,
+                    category: cat,
+                    name: metric.name
+                  }, 
+                  { $set: 
+                    {
+                      sub: sub,
+                      category: cat,
+                      name: metric.name,
+                      metric: metric
+                    } 
+                  }, 
+                  {upsert: true},
+                  (error, count) => {
+                    if(error){ return done(error); }
+                    done();  
+                  });
+  });
+};
 
-domain.deleteMetric = (sub, metricName, done) =>{
+domain.deleteSharedMetric = (sub, category, name, done) => {
+  db.connectDb((e,client)=>{
+      if(e){ return done(e); }
+      const cat = category.toLowerCase();
+      client.db()
+            .collection(shared_metrics_collection)
+            .deleteMany({
+                      sub: sub,
+                      category: cat,
+                      name: name
+                    },
+                    (error) => {
+                      if(error){ return done(error); }
+                      done();  
+                    });
+    });
+}
+
+domain.getCommunityMetrics = (category, page, done) => {
+  const pageSize = 20;
+  db.connectDb((e,client)=>{
+    if(e) return done(e);
+    client.db()
+          .collection(shared_metrics_collection)
+          .find({
+                  category: category.toLowerCase(),
+                })
+          .skip(pageSize * page)
+          .limit(pageSize)
+          .toArray((err, results) => {
+                      done(err,results);
+                  });
+  });
+};
+
+domain.addCommunityMetric = (id, sub, done) => {
+  db.connectDb((err, client) => {
+    if(err){ return done(err); }
+    client
+      .db()
+      .collection(shared_metrics_collection)
+        .findOne({_id: new ObjectID(id)}, (e, communityMetric) => {
+                                            client.close();
+                                            if(e){ return done(e); }
+                                            domain.addMetric(sub, communityMetric.metric, done);
+                                          });
+  });
+};
+
+domain.deleteMetric = (sub, metricName, done) => {
   db.connectDb((e,client)=>{
     if(e) return done(e);
     const db = client.db();
@@ -101,8 +177,6 @@ domain.deleteMetric = (sub, metricName, done) =>{
 
 domain.addMetric = (sub, metric, done) =>{
 
-  log(metric);
-
   //Validate metric
   if(!metric){ return done("No metric definition."); }
   if(!metric.command){ return done("Command is missing."); }
@@ -111,7 +185,6 @@ domain.addMetric = (sub, metric, done) =>{
 
   //If MIN and MAX are specified, they need to be arrays and with the same length as UNITS
   if(metric.min || metric.max){
-
     if(!Array.isArray(metric.min) || !Array.isArray(metric.max) 
         || (metric.min.length + metric.max.length + metric.units.length + metric.validate.length) % 4 !== 0){
       return done("MIN, MAX and UNITS need to be the same length");

@@ -15,10 +15,14 @@
                 <input type="hidden" name="unAvailableCommands" value="<%- unAvailableCommands%>">
                 <div class="form-group">
                   <label for="name">Name</label>
-                  <input type="text" class="form-control" id="name" name='name' aria-describedby="nameHelp" placeholder="Enter a name (no spaces)" value='<%-metric.name%>'>
+                  <input type="text" class="form-control" id="name" name='name' aria-describedby="nameHelp" placeholder="Enter a name." value='<%-metric.name%>'>
                   <%if(errors.name){%>
                     <small id="nameHelp" class="form-text text-danger"><%-errors.name%></small>
                   <%}%>
+                </div>
+                <div class="form-group">
+                  <label for="name">Description (optional)</label>
+                  <input type="text" class="form-control" id="description" name='description' aria-describedby="nameHelp" placeholder="Enter a description." value='<%-metric.description || ""%>'>
                 </div>
                 <div class="form-group">
                   <label for="units">Command</label>

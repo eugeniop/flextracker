@@ -1,0 +1,33 @@
+<%- include('header'); %>
+        <div class="container-fluid">
+
+          <!-- Page Heading -->
+          <h1 class="h3 mb-2 text-gray-800">Metrics</h1>
+          <p class="mb-4">Share metric with everyone!</p>
+
+          <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between"">
+              <h6 class="m-0 font-weight-bold text-primary">Share</h6>
+            </div>
+            <div class="card-body">
+              <form action='/web/metrics/share' method=post>
+                <input type="hidden" name="_csrf" value="<%- csrfToken%>">
+                <input type="hidden" name="name" value="<%- metric.name%>">
+                <div class="form-group">
+                  <label for="name">Category</label>
+                  <select class="form-control" id="category" name="category">
+                    <%categories.forEach((c)=>{%>
+                      <option><%-c%></option>
+                    <%});%>
+                  </select>
+                </div>
+                <p><b>Name:</b><%-metric.name%>. (<%-metric.description%>)</p>
+                <p><b>Units:</b><%-metric.units%></p>
+                <p><b>Command:</b><%-metric.command%></p>
+                <a class="btn btn-danger" href='/web/metrics/'>Cancel</a>
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </form>
+            </div>  
+          </div>
+        </div>
+<%- include("footer"); %>

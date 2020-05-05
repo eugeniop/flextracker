@@ -2,19 +2,14 @@
         <div class="container-fluid">
 
           <!-- Page Heading -->
-          <h1 class="h3 mb-2 text-gray-800">Metrics</h1>
-          <p class="mb-4">Metrics associated with your phone</p>
+          <h1 class="h3 mb-2 text-gray-800">Community Metrics</h1>
+          <p class="mb-4">Metrics available from the community</p>
 
           <!-- DataTales Example -->
           <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between"">
               <h6 class="m-0 font-weight-bold text-primary">Metrics</h6>
-              <div>
-                <a href="/web/metrics/add" class="btn btn-success btn-circle">
-                  <i class="fas fa-plus"></i>
-                </a>
-              </div>
-              </div>
+            </div>
               <div class="card-body">
                 <div class="table-responsive">
                   <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
@@ -22,8 +17,8 @@
                       <tr>
                         <th>Name</th>
                         <th>Command</th>
-                        <th>Unit</th>
-                        <th>Validate on Save</th>
+                        <th>Description</th>
+                        <th>Units</th>
                         <th>Min</th>
                         <th>Max</th>
                         <th>Actions</th>
@@ -31,30 +26,25 @@
                     </thead>
                     <tbody>
                       <%
-                        metrics.forEach((m)=>{%>
+                        metrics.forEach((sm)=>{
+                        const m = sm.metric;
+                      %>
                         <tr>
                           <td><%- m.name %></td>
                           <td><%- m.command %></td>
+                          <td><%- m.description %></td>
                           <td><%- m.units %></td>
-                          <td><%- m.validate %></td>
                           <td><%- m.min %></td>
                           <td><%- m.max %></td>
                           <td>
-                            <a href="/web/metrics/delete/<%-m.name%>" class="btn btn-danger btn-circle btn-sm">
+                            <a href="/web/community/add/<%-sm._id%>" class="btn btn-success btn-circle btn-sm">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                            <%if(user.sub === sm.sub){%>
+                            <a href="/web/community/delete/<%-sm.name%>/<%-sm.category%>" class="btn btn-danger btn-circle btn-sm">
                                 <i class="fas fa-trash"></i>
                             </a>
-                            <a href="/web/metrics/edit/<%-m.name%>" class="btn btn-success btn-circle btn-sm">
-                                <i class="fas fa-pencil-alt"></i>
-                            </a>
-                            <a href="/web/metrics/logs/<%-m.name%>" class="btn btn-primary btn-circle btn-sm">
-                                <i class="fas fa-list"></i>
-                            </a>
-                            <a href="/web/metrics/chart/<%-m.name%>" class="btn btn-primary btn-circle btn-sm">
-                                <i class="fas fa-chart-line"></i>
-                            </a>
-                            <a href="/web/metrics/share/<%-m.name%>" class="btn btn-primary btn-circle btn-sm">
-                                <i class="fas fa-share"></i>
-                            </a>
+                            <%}%>
                           </td>
                       </tr>  
                       <%});%>
