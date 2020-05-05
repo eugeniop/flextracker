@@ -215,6 +215,12 @@ domain.addMetric = (sub, metric, done) =>{
       if(!locals.subscriber.metrics){
         locals.subscriber.metrics = [];
       } else {
+        const m = _.find(locals.subscriber.metrics, (m) => m.command === metric.command && m.name !== metric.name);
+        if(m){
+          //Command taken
+          return cb(`The command ${metric.command} is already in use by metric: "${m.name}"`);
+        }
+
         //remove whatever was there before
         _.remove(locals.subscriber.metrics, (m) => m.name === metric.name);
       }
@@ -234,7 +240,7 @@ domain.addMetric = (sub, metric, done) =>{
     }
     ], (e)=>{
       locals.client.close();
-      if(e) return done(e);
+      if(e){ return done(e); }
       done(null, locals.subscriber);
     });
 };

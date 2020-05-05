@@ -77,6 +77,10 @@ server.use(auth(config));
 server.use('/public', express.static('web/public'));
 
 server.use('/web', requiresAuth(), web);
+server.use('/logoff', (req, res, next)=>{
+  req.session.destroy();
+  res.openid.logout();
+})
 
 server.get("/", (req, res) => {
   res.redirect('/web');
