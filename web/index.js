@@ -159,7 +159,7 @@ app.get('/community', subscriberById, (req, res, next) => {
   const page = req.query.page || 0;
   domain.getCommunityMetrics(category, page, (e,metrics) => {
     if(e){ return next(e); }
-    return res.render('community', { page: page, metrics: metrics });  
+    return res.render('community', { page: page, metrics: metrics, category: category });  
   });
 });
 

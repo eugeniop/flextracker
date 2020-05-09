@@ -8,7 +8,7 @@
           <!-- DataTales Example -->
           <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between"">
-              <h6 class="m-0 font-weight-bold text-primary">Metrics</h6>
+              <h6 class="m-0 font-weight-bold text-primary">Metrics for <b>"<%-category%>"</b></h6>
             </div>
               <div class="card-body">
                 <div class="table-responsive">
@@ -37,9 +37,11 @@
                           <td><%- m.min %></td>
                           <td><%- m.max %></td>
                           <td>
+                            <%if(user.sub !== sm.sub){%>
                             <a href="/web/community/add/<%-sm._id%>" class="btn btn-success btn-circle btn-sm">
                                 <i class="fas fa-plus"></i>
                             </a>
+                            <%}%>
                             <%if(user.sub === sm.sub){%>
                             <a href="/web/community/delete/<%-sm.name%>/<%-sm.category%>" class="btn btn-danger btn-circle btn-sm">
                                 <i class="fas fa-trash"></i>
