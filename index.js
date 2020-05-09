@@ -29,7 +29,6 @@ const config = {
   authorizationParams: {
     response_type: "code",
     scope: "openid profile",
-    audience: "https://flextracker",
     response_mode: "query"
   },
   clientID: process.env.CLIENT_ID,
