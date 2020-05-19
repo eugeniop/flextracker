@@ -215,40 +215,6 @@ app.get('/metrics/summary/:name', subscriberById, (req, res, next) =>{
   });
 });
 
-// app.get('/metrics/testchart', csrfProtection, (req, res) =>{
-  
-//   domain.getLogsInLastDaysByPhone("+14252832118", "Blood Pressure", 120, (e, logs) =>{
-
-//     var metric = {
-//       units: ["mmHg", "mmHg", "bps"]
-//     };
-
-//     var data = [];
-
-//     for(var i=0; i < metric.units.length; i++){
-//       data.push(_.map(logs, (l) => {
-//                                       return {
-//                                         t: moment(l.createdAt)
-//                                             .tz('America/Los_Angeles')
-//                                             .format('MM/DD/YYYY HH:MM'),
-//                                         y: l.value[i]
-//                                       };
-//                     }));
-//     }
-
-//     log(data);
-
-//     res.render('chart', {
-//                           user: 'EP',
-//                           name: 'Blood Pressure', 
-//                           units: metric.units,
-//                           data: data, 
-//                           csrfToken: req.csrfToken() 
-//                         });
-//   });
-// });
-
-
 app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res, next) =>{
   
   if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
@@ -258,6 +224,10 @@ app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res, next
   const metricName = req.params.name || s.metrics[0].name;
   
   const metric = _.find(req.subscriber.metrics, (i) => i.name === metricName);
+
+  if(!metric){
+    return next(`Metric <b>${metricName}</b>  is not defined in this subscriber`);
+  }
 
   domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, 240, (e, logs) =>{
     if(e){ return next(e); }
