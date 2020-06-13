@@ -29,7 +29,7 @@ const config = {
   authorizationParams: {
     response_type: "code",
     scope: "openid profile",
-    response_mode: "query"
+    //response_mode: "query"
   },
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.CLIENT_SECRET,
@@ -43,12 +43,7 @@ const config = {
   },
   getUser: function (req) {
     return req.session.user;
-  },
-  getLoginState: function (req, options) {
-    return {
-      returnTo: req.originalUrl,  // redirect to the original page the user was browsing
-    };
-  },
+  }
 };
 
 //App modules
