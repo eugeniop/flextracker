@@ -26,7 +26,9 @@ if(process.env.NODE_ENV !== 'production'){
 function validate(req){
   const twilioSignature = req.headers['x-twilio-signature'];
   const params = req.body;
-  const url = 'https://flextracker.io';
+  const url = 'https://flextracker.io/sms';
+
+  console.log(twilioSignature);
 
   const requestIsValid = twilio.validateRequest(
     process.env.TWILIO_AUTH_TOKEN,
