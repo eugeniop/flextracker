@@ -17,7 +17,7 @@ const parseForm = bodyParser.urlencoded({ extended: false });
 const parseJson = bodyParser.json();
 const twilioValidator =  twilio.webhook();
 
-server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
+server.post('/', [parseForm, parseJson], smsHandler);
 
 if(process.env.NODE_ENV !== 'production'){
   server.get('/', parseForm, smsHandler);

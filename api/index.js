@@ -8,7 +8,7 @@ const { log } = console;
 const domain = require('../domain');
 
 const subscriberById = (req, res, next) => {
-    domain.getSubscriberById(req.user.sub, (e, s)=>{
+    domain.getSubscriberById(req.user.sub, (e, s) => {
       if(e) return next(e);
       req.subscriber = s;
       next();
@@ -44,6 +44,27 @@ server.delete('/metric/:name', subscriberById, (req, res, next) => {
 
 });
 
+/*
+    Saves a new sample
+
+    Payload is an object with:
+    {
+        "command": "c",
+        "values": [1, 2, 3],
+        "notes": "some notes"
+    }
+
+    Authentication is taken care by "SubscriberById" middleware. If successful, req.subscriber 
+
+*/
+server.post('/sample', subscriberById, json, (req, res, next) => {
+    const data = req.body;
+    domain.saveSample(req.subscriber, `${data.command} ${data.values.join(' ')} ${data.notes}`, (e) => {
+        if(e){ return next(e); }
+        res.sendStatus(200);
+    });
+});
+
 server.get('/metric/log/:name', (req, res, next) => {
     const page = req.query.page || 0;
     domain.getLogsByPhone(req.subscriber.phone, req.params.name, page, (e, logs)=>{
@@ -53,7 +74,7 @@ server.get('/metric/log/:name', (req, res, next) => {
 });
 
 server.get('/metric/summary/:name', (req, res, next) => {
-    domain.getMetricSummary(req.user.sub, (e_s,s)=>{
+    domain.getMetricSummary(req.user.sub, (e_s,s) => {
         if(e_s) return next(e);
         domain.getLogsByPhone(s.phone, req.params.name, page, (e, logs)=>{
             if(e) return next(e);

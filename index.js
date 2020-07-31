@@ -12,7 +12,7 @@ const { auth, requiresAuth } = require("express-openid-connect");
 
 var server = express();
 
-//Helper functions properties for templates
+//Helper functions for page templates
 server.locals.formatDate = function(d){
   return moment(new Date(d)).format('YYYY/MM/DD HH:mm:ss');
 };
