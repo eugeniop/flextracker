@@ -30,6 +30,8 @@ function smsHandler(req, res, next){
   var phone = sms.getPhone(req);
   var locals = {};
 
+  console.log(req.body);
+
   async.series(
     [(cb) => {
       domain.getSubscriberByPhone(phone, (e, subscriber) => {
