@@ -29,8 +29,8 @@ function validate(req){
   const url = 'https://flextracker.io/sms';
 
   console.log(twilioSignature);
-  console.log(request.protocol);
-  console.log(request.headers.host);
+  console.log(req.protocol);
+  console.log(req.headers.host);
 
   const requestIsValid = twilio.validateRequest(
     process.env.TWILIO_AUTH_TOKEN,
