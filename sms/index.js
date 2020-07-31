@@ -15,32 +15,32 @@ const domain = require('../domain');
 
 const parseForm = bodyParser.urlencoded({ extended: false });
 const parseJson = bodyParser.json();
-const twilioValidator =  twilio.webhook();
+const twilioValidator =  twilio.webhook({protocol: 'https'});
 
-server.post('/', [parseForm, parseJson], smsHandler);
+server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
 
 if(process.env.NODE_ENV !== 'production'){
   server.get('/', parseForm, smsHandler);
 }
 
-function validate(req){
-  const twilioSignature = req.headers['x-twilio-signature'];
-  const params = req.body;
-  const url = 'https://flextracker.io/sms';
+// function validate(req){
+//   const twilioSignature = req.headers['x-twilio-signature'];
+//   const params = req.body;
+//   const url = 'https://flextracker.io/sms';
 
-  console.log(twilioSignature);
-  console.log(req.protocol);
-  console.log(req.headers.host);
+//   console.log(twilioSignature);
+//   console.log(req.protocol);
+//   console.log(req.headers.host);
 
-  const requestIsValid = twilio.validateRequest(
-    process.env.TWILIO_AUTH_TOKEN,
-    twilioSignature,
-    url,
-    params
-  );
+//   const requestIsValid = twilio.validateRequest(
+//     process.env.TWILIO_AUTH_TOKEN,
+//     twilioSignature,
+//     url,
+//     params
+//   );
 
-  console.log("Validation:", requestIsValid);
-}
+//   console.log("Validation:", requestIsValid);
+// }
 
 
 function smsHandler(req, res, next){
@@ -49,9 +49,6 @@ function smsHandler(req, res, next){
   var { verb, command } = sms.parseInput(req);
   var phone = sms.getPhone(req);
   var locals = {};
-
-  console.log(req.body);
-  validate(req);
 
   async.series(
     [(cb) => {
