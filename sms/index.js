@@ -23,6 +23,22 @@ if(process.env.NODE_ENV !== 'production'){
   server.get('/', parseForm, smsHandler);
 }
 
+function validate(req){
+  const twilioSignature = req.headers['x-twilio-signature'];
+  const params = req.body;
+  const url = 'https://flextracker.io';
+
+  const requestIsValid = twilio.validateRequest(
+    process.env.TWILIO_AUTH_TOKEN,
+    twilioSignature,
+    url,
+    params
+  );
+
+  console.log("Validation:", requestIsValid);
+}
+
+
 function smsHandler(req, res, next){
 
   //Commands on SMS are of the format: {c} {args}
@@ -31,6 +47,7 @@ function smsHandler(req, res, next){
   var locals = {};
 
   console.log(req.body);
+  validate(req);
 
   async.series(
     [(cb) => {
