@@ -12,36 +12,15 @@ const { log } = console;
 const sms = require('./smsutils');
 const domain = require('../domain');
 
-
 const parseForm = bodyParser.urlencoded({ extended: false });
 const parseJson = bodyParser.json();
-const twilioValidator =  twilio.webhook({protocol: 'https'});
+const twilioValidator =  twilio.webhook({protocol: 'https'}); //protocol is needed because we are fronting the app with Cloudflare
 
 server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
 
 if(process.env.NODE_ENV !== 'production'){
   server.get('/', parseForm, smsHandler);
 }
-
-// function validate(req){
-//   const twilioSignature = req.headers['x-twilio-signature'];
-//   const params = req.body;
-//   const url = 'https://flextracker.io/sms';
-
-//   console.log(twilioSignature);
-//   console.log(req.protocol);
-//   console.log(req.headers.host);
-
-//   const requestIsValid = twilio.validateRequest(
-//     process.env.TWILIO_AUTH_TOKEN,
-//     twilioSignature,
-//     url,
-//     params
-//   );
-
-//   console.log("Validation:", requestIsValid);
-// }
-
 
 function smsHandler(req, res, next){
 
