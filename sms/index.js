@@ -14,7 +14,7 @@ const domain = require('../domain');
 
 const parseForm = bodyParser.urlencoded({ extended: false });
 const parseJson = bodyParser.json();
-const twilioValidator =  twilio.webhook({protocol: 'https'}); //protocol is needed because we are fronting the app with Cloudflare
+const twilioValidator =  twilio.webhook({protocol: 'https', validate: process.env.VALIDATE_TWILIO_REQUESTS === "1" ? true : false}); //protocol is needed because we are fronting the app with Cloudflare
 
 server.post('/', [parseForm, parseJson, twilioValidator], smsHandler);
 
@@ -60,6 +60,12 @@ function smsHandler(req, res, next){
                         var msg = `You've got ${m.length} metrics\n`;
                         msg += _.map(m, (i) => `${i.name} - use command: ${i.command}.`).join("\n");
                         return done(null, msg);
+                      }),
+        sms.menuOption('Average of a metric',
+                      '"avg"',
+                      ['a', 'avg'],
+                      (done) => {
+                        
                       }),
         sms.menuOption('Save new sample',
                       '"s {metric command} {value} {extra}"',

@@ -3,7 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
-const moment = require('moment');
+const moment = require('moment-timezone');
 
 const { log } = console;
 
@@ -14,7 +14,7 @@ var server = express();
 
 //Helper functions for page templates
 server.locals.formatDate = function(d){
-  return moment(new Date(d)).format('YYYY/MM/DD HH:mm:ss');
+  return moment(new Date(d)).tz("America/Los_Angeles").format('YYYY/MM/DD HH:mm:ss');
 };
 
 server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
