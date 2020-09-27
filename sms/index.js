@@ -61,11 +61,44 @@ function smsHandler(req, res, next){
                         msg += _.map(m, (i) => `${i.name} - use command: ${i.command}.`).join("\n");
                         return done(null, msg);
                       }),
-        sms.menuOption('Average of a metric',
-                      '"avg"',
-                      ['a', 'avg'],
+        sms.menuOption('Summary of a metric ',
+                      '"sum {metric command} {days} [index]". e.g. sum bp 20 0',
+                      ['sum'],
                       (done) => {
+
+                        if(!command){
+                          return done(null,"Metric command is required");
+                        }
+
+                        const params = command.split(' ');
+
+                        const metric = _.find(locals.subscriber.metrics, 
+                                              (m) => {
+                                                return m.command[0].toLowerCase() === params[0].toLowerCase();
+                                              });
+
+                        if(!metric){
+                          return done(null, "Metric not defined in your profile");
+                        }
+
+                        const days = params[1] ? Number(params[1]) : 30;
+                        const index = params[2] ? Number(params[2]) : 0;
                         
+                        domain.getMetricSummary(phone, metric.name, index, days, (e,s) =>{
+                          /*
+                            Returns a stats object with:
+                            {
+                              samples: 2,
+                              min:
+                              max:
+                              avg:
+                              median:
+                            }
+                          */
+                          if(e){ return done(null, `Could not retrieve summary for ${metricName}`); }
+                          if(s.samples === 0){ return done(null, "No samples for this metric!"); }
+                          done(null, `${s.samples} samples in ${days} days on index ${index}\nMax: ${s.max}\nMin: ${s.min}\nAvg: ${s.avg}\nMedian: ${s.median}`);
+                        });    
                       }),
         sms.menuOption('Save new sample',
                       '"s {metric command} {value} {extra}"',

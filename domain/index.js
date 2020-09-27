@@ -362,7 +362,7 @@ domain.getLogsInLastDaysByPhone = (phone, metricName, days, done) =>{
                             $gte: new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000),
                           },
 
-                        }, 0, 100, 1,
+                        }, 0, 200, 1,
     (err, data) => {
       if(err) return done(err);
       done(null, data);
@@ -381,7 +381,7 @@ domain.getLogsInLastDaysByPhone = (phone, metricName, days, done) =>{
 //       samples: 26
 //   }
 // */
-domain.getMetricSummary = (phone, metricName, days, done) => {
+domain.getMetricSummary = (phone, metricName, index, days, done) => {
   domain.getData(phone, {
                           event: metricName,
                           createdAt: {
@@ -397,7 +397,7 @@ domain.getMetricSummary = (phone, metricName, days, done) => {
       }
 
       var ss = require('simple-statistics');
-      var value_data = _.map(data, (s) => s.value);
+      var value_data = _.map(data, (s) => s.value[index]);
       
       var stats = {
         samples: value_data.length
@@ -414,6 +414,7 @@ domain.getMetricSummary = (phone, metricName, days, done) => {
 }
 
 domain.getData = (phone, query, page, pageSize, dateSort, done) => {
+  console.log(query);
   db.connectDb((err, client) => {
     var db = client.db();
     if(err){
@@ -422,7 +423,7 @@ domain.getData = (phone, query, page, pageSize, dateSort, done) => {
 
     db.collection(getSamplesCollectionName(phone))
       .find(query)
-      .sort({createdAt: dateSort  })
+      .sort({createdAt: dateSort})
       .skip(pageSize * page)
       .limit(pageSize)
       .toArray((err, results) => {
