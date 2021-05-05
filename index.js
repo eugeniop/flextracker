@@ -22,7 +22,7 @@ server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 //Auth0 OPENIDC config
 const config = {
   // appSession: false,
-  required: false,
+  authRequired: false,
   auth0Logout: true,
   baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
