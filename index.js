@@ -22,7 +22,7 @@ server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 //Auth0 OPENIDC config
 const config = {
   // appSession: false,
-  // required: false,
+  required: false,
   auth0Logout: true,
   baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
@@ -56,10 +56,6 @@ server.use(auth(config));
 server.use('/public', express.static('web/public'));
 
 server.use('/web', requiresAuth(), web);
-// server.use('/logoff', (req, res, next)=>{
-//   req.session.destroy();
-//   res.openid.logout();
-// })
 
 server.get("/", (req, res) => {
   res.redirect('/web');
