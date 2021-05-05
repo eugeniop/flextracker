@@ -21,13 +21,11 @@ server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 
 //Auth0 OPENIDC config
 const config = {
-  // appSession: false,
-  authRequired: false,
-  auth0Logout: true,
+  authRequired: false,                // Not all routes are protected with this middleware (SMS/API)
+  auth0Logout: true,                  // Logout from everything
   baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
   clientID: process.env.CLIENT_ID,
-  //clientSecret: process.env.CLIENT_SECRET,
   secret: process.env.CLIENT_SECRET,
 };
 
@@ -40,21 +38,12 @@ const web = require('./web');
 server.enable("trust proxy"); 
 
 server.set('port', (process.env.PORT || 5000));
-
-// server.use(session({
-//   secret: 'replace this with a long, random, static string',
-//   resave: false,
-//   saveUninitialized: false,
-//   cookie: {}
-// }));
-
 server.set('views', __dirname + '/web/views');
 server.set('view engine', 'ejs');
 
 server.use(auth(config));
 
 server.use('/public', express.static('web/public'));
-
 server.use('/web', requiresAuth(), web);
 
 server.get("/", (req, res) => {
@@ -74,7 +63,7 @@ const jwtCheck = jwt({
     algorithms: ['RS256']
 });
 
-// All API require a bearer token
+// All API endpoints require a bearer token
 server.use('/api', jwtCheck, api);
 
 // SMS handler (uses its own security)

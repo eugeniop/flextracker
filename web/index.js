@@ -17,17 +17,23 @@ const parseForm = bodyParser.urlencoded({ extended: false });
 
 app.use(cookieParser());
 
+/*
+  This middleware does 2 things:
+  1. Finds the subscriber
+  2. Adds the `user` object to the locals variable so it is available to all templates
+*/
 const subscriberById = (req, res, next) => { 
     domain.getSubscriberById(req.oidc.user.sub, (e, s)=>{
       if(e) return next(e);
       req.subscriber = s;
+      res.locals.user = req.oidc.user;
       next();
     });
   };
 
 app.get('/', subscriberById, (req, res) => {
   const sub = req.subscriber;
-  res.render('home', { user: req.oidc.user, userWithNoMetrics: !(sub && sub.metrics && sub.metrics.length > 0) });
+  res.render('home', { userWithNoMetrics: !(sub && sub.metrics && sub.metrics.length > 0) });
 });
 
 app.get('/metrics', subscriberById, (req, res, next) =>{
@@ -35,11 +41,11 @@ app.get('/metrics', subscriberById, (req, res, next) =>{
     //Bootstrap subscriber in the database
     domain.createSubscriber(req.session.user.sub, req.session.user.name, (e) =>{
       if(e) { return next(e); }
-      return res.render('metrics', { user: req.oidc.user, metrics: []});    
+      return res.render('metrics', { metrics: []});    
     })
   } else {
     //_.filter(s.metrics, (m) => !m.multivalue)
-    res.render('metrics', { user: req.oidc.user, metrics: _.sortBy(req.subscriber.metrics, 'name') || []});
+    res.render('metrics', { metrics: _.sortBy(req.subscriber.metrics, 'name') || []});
   }
 });
 
@@ -54,13 +60,13 @@ app.get('/metrics/edit/:name', subscriberById, csrfProtection, (req, res) =>{
   const sub = req.subscriber;
   const metric = _.find(sub.metrics, (m) => m.name === req.params.name);
   const unAvailableCommands = _.map(sub.metrics,(m)=>m.command).join(',');
-  res.render('metrics_add_edit', { user: req.oidc.user, unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric: metric, errors: [] });
+  res.render('metrics_add_edit', { unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric: metric, errors: [] });
 });
 
 app.get('/metrics/add', subscriberById, csrfProtection, (req,res) =>{
   const sub = req.subscriber;
   const unAvailableCommands = _.map(sub.metrics,(m)=>m.command).join(',');
-  res.render('metrics_add_edit', { user: req.oidc.user, unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric:{}, errors: [] }); 
+  res.render('metrics_add_edit', { unAvailableCommands: unAvailableCommands, csrfToken: req.csrfToken(), metric:{}, errors: [] }); 
 });
 
 app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res, next) =>{
@@ -118,8 +124,7 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res, n
   }
 
   if(_.some(errors)){
-    return res.render('metrics_add_edit', {
-                                            user: req.oidc.user, 
+    return res.render('metrics_add_edit', { 
                                             unAvailableCommands: metric.unAvailableCommands, 
                                             errors: errors, 
                                             metric: metric, 
@@ -140,7 +145,7 @@ app.get('/metrics/share/:name', subscriberById, csrfProtection, (req,res,next) =
   const sub = req.subscriber;
   const metric = _.find(req.subscriber.metrics, (m) => m.name === req.params.name);
   if(!metric){ return next("Invalid metric"); }
-  res.render('metric_share', { user: req.oidc.user, csrfToken: req.csrfToken(), metric: metric, categories: ['Health', 'Nature', 'Fitness'] }); 
+  res.render('metric_share', { csrfToken: req.csrfToken(), metric: metric, categories: ['Health', 'Nature', 'Fitness'] }); 
 });
 
 app.post('/metrics/share', subscriberById, parseForm, csrfProtection, (req, res, next) =>{
@@ -160,7 +165,7 @@ app.get('/community', subscriberById, (req, res, next) => {
   const page = req.query.page || 0;
   domain.getCommunityMetrics(category, page, (e,metrics) => {
     if(e){ return next(e); }
-    return res.render('community', { user: req.oidc.user, page: page, metrics: metrics, category: category });  
+    return res.render('community', { page: page, metrics: metrics, category: category });  
   });
 });
 
@@ -181,7 +186,7 @@ app.get('/community/add/:id', subscriberById, (req, res, next) => {
 // LOGS ---------
 app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res, next) =>{
   if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
-    return res.render('logs', { user: req.oidc.user, name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
+    return res.render('logs', { name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
   }
 
   const metricName = req.params.name || req.subscriber.metrics[0].name;
@@ -189,7 +194,7 @@ app.get('/metrics/logs/:name?', subscriberById, csrfProtection, (req, res, next)
 
   domain.getLogsByPhone(req.subscriber.phone, metricName, page, (e, l) =>{
     if(e){ return next(e); }
-    res.render('logs', { user: req.oidc.user, name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
+    res.render('logs', { name: metricName, page: page, logs: l, csrfToken: req.csrfToken() });
   });
 });
 
@@ -212,7 +217,7 @@ app.get('/metrics/summary/:name', subscriberById, (req, res, next) =>{
 
   domain.getMetricSummary(req.subscriber.phone, metricName, 30, (e,summary) => {
     if(e){ return next(e); }
-    res.render('metric_summary', { user: req.oidc.user, metric: metric, stats: summary, name: metricName });
+    res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
   });
 });
 
@@ -245,8 +250,7 @@ app.get('/metrics/chart/:name?', subscriberById, csrfProtection, (req, res, next
                     }));
     }
 
-    res.render('metric_chart', {
-                          user: req.oidc.user, 
+    res.render('metric_chart', { 
                           name: metric.name, 
                           units: metric.units,
                           data: data, 
@@ -261,5 +265,5 @@ app.post('/metrics/chart', parseForm, csrfProtection, (req, res) =>{
 });
 
 app.use((error, req, res, next) => {
-  res.render("error", { user: req.oidc.user, error: error });
+  res.render("error", { error: error });
 });
