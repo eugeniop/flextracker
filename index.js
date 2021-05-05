@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
+// const session = require('express-session');
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
 const moment = require('moment-timezone');
@@ -21,29 +21,14 @@ server.locals.page_size = Number(process.env.PAGE_SIZE) || 100;
 
 //Auth0 OPENIDC config
 const config = {
-  appSession: false,
-  required: false,
+  // appSession: false,
+  // required: false,
   auth0Logout: true,
   baseURL: process.env.BASE_URL,
   issuerBaseURL: process.env.ISSUER,
-  authorizationParams: {
-    response_type: "code",
-    scope: "openid profile",
-    //response_mode: "query"
-  },
   clientID: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  handleCallback: function (req, res, next) {
-    // Store recevied tokens (access and ID in this case) in server-side storage.
-    log(req.openidTokens);
-    req.session.user = req.openidTokens.claims();
-    req.session.openidTokens = req.openidTokens;
-    server.locals.user = req.session.user;
-    next();
-  },
-  getUser: function (req) {
-    return req.session.user;
-  }
+  //clientSecret: process.env.CLIENT_SECRET,
+  secret: process.env.CLIENT_SECRET,
 };
 
 //App modules
@@ -56,12 +41,12 @@ server.enable("trust proxy");
 
 server.set('port', (process.env.PORT || 5000));
 
-server.use(session({
-  secret: 'replace this with a long, random, static string',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {}
-}));
+// server.use(session({
+//   secret: 'replace this with a long, random, static string',
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {}
+// }));
 
 server.set('views', __dirname + '/web/views');
 server.set('view engine', 'ejs');
@@ -71,10 +56,10 @@ server.use(auth(config));
 server.use('/public', express.static('web/public'));
 
 server.use('/web', requiresAuth(), web);
-server.use('/logoff', (req, res, next)=>{
-  req.session.destroy();
-  res.openid.logout();
-})
+// server.use('/logoff', (req, res, next)=>{
+//   req.session.destroy();
+//   res.openid.logout();
+// })
 
 server.get("/", (req, res) => {
   res.redirect('/web');
