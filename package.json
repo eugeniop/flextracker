@@ -26,7 +26,8 @@
     "twilio": "^3.45.0"
   },
   "engines": {
-    "node": "12.16.2"
+    "node": "16.2.0",
+    "npm": "7.13.0"
   },
   "keywords": [
     "node",
