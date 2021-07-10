@@ -362,7 +362,7 @@ domain.getLogsInLastDaysByPhone = (phone, metricName, days, done) =>{
                             $gte: new Date(new Date().getTime() - days * 24 * 60 * 60 * 1000),
                           },
 
-                        }, 0, 200, 1,
+                        }, 0, 1000, 1,
     (err, data) => {
       if(err) return done(err);
       done(null, data);

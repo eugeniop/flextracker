@@ -213,11 +213,51 @@ app.get('/metrics/logs/delete/:name/:id', subscriberById, (req, res, next) =>{
 app.get('/metrics/summary/:name', subscriberById, (req, res, next) =>{
   const metricName = req.params.name;
 
-  const metric = _.find(s.metrics, (m) => m.name === metricName);
+  const metric = _.find(req.subscriber.metrics, (m) => m.name === metricName);
 
-  domain.getMetricSummary(req.subscriber.phone, metricName, 30, (e,summary) => {
+  domain.getMetricSummary(req.subscriber.phone, metricName, req.query.index || 0, req.query.days || 30, (e,summary) => {
     if(e){ return next(e); }
-    res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
+    log(summary);
+    res.json(summary);
+    //res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
+  });
+});
+
+//Download CSV file with all log entries
+app.post('/metrics/logs/csv/:name', subscriberById, parseForm, csrfProtection, (req, res, next) =>{
+  if(!req.subscriber.metrics || req.subscriber.metrics.length === 0){
+    return res.render('logs', { name: 'No metrics defined yet!', page: 0, logs: [], csrfToken: req.csrfToken()});
+  }
+
+  const metricName = req.params.name || req.subscriber.metrics[0].name;
+  const metric = _.find(req.subscriber.metrics, (i) => i.name === metricName);
+  var days = parseInt(req.body.days || 365);
+  if(days > 730){
+    days = 730;
+  } else {
+    if(days < 0){
+      days = 1;
+    }
+  }
+
+  domain.getLogsInLastDaysByPhone(req.subscriber.phone, metricName, days, (e, logs) =>{
+    if(e){ return next(e); }
+
+    res.setHeader('Content-disposition', `attachment; filename=${metricName}.csv`);
+    res.set('Content-Type', 'text/csv');
+
+    res.write(`${metricName}, ${new Date()}\n`);
+    res.write(`${logs.length} samples\n`);
+    res.write(`createdAtDate,createdAtTime,${metric.units.join(',')},Notes\n`);
+
+
+    const d = _.map(logs, (l) => {
+      const m = moment(l.createdAt).tz('America/Los_Angeles');
+      return  m.format('MM/DD/YYYY') + "," + m.format("HH:MM") + "," + 
+              + l.value.join(',') + "," + l.notes;
+    }).join('\n');
+    res.write(d);
+    res.end();
   });
 });
 
