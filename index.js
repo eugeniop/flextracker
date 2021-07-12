@@ -46,6 +46,10 @@ server.use(auth(config));
 server.use('/public', express.static('web/public'));
 server.use('/web', requiresAuth(), web);
 
+server.get("/ping", (req,res) =>{
+  res.send("OK");
+});
+
 server.get("/", (req, res) => {
   res.redirect('/web');
 });

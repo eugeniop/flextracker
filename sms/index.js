@@ -95,8 +95,12 @@ function smsHandler(req, res, next){
                               median:
                             }
                           */
-                          if(e){ return done(null, `Could not retrieve summary for ${metricName}`); }
-                          if(s.samples === 0){ return done(null, "No samples for this metric!"); }
+                          if(e){ 
+                            return done(null, `Could not retrieve summary for ${metricName}`); 
+                          }
+                          if(s.samples === 0){ 
+                            return done(null, "No samples for this metric!"); 
+                          }
                           done(null, `${s.samples} samples in ${days} days on index ${index}\nMax: ${s.max}\nMin: ${s.min}\nAvg: ${s.avg}\nMedian: ${s.median}`);
                         });    
                       }),

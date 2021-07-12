@@ -217,7 +217,7 @@ app.get('/metrics/summary/:name', subscriberById, (req, res, next) =>{
 
   domain.getMetricSummary(req.subscriber.phone, metricName, req.query.index || 0, req.query.days || 30, (e,summary) => {
     if(e){ return next(e); }
-    log(summary);
+    //log(summary);
     res.json(summary);
     //res.render('metric_summary', { metric: metric, stats: summary, name: metricName });
   });
