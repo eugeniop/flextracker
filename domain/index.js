@@ -2,7 +2,7 @@ var domain = module.exports;
 
 const async = require('async');
 const _ = require('lodash');
-const { ObjectID } = require('mongodb');
+const { ObjectId } = require('mongodb');
 
 const { log } = console;
 
@@ -148,7 +148,7 @@ domain.addCommunityMetric = (id, sub, done) => {
     client
       .db()
       .collection(shared_metrics_collection)
-        .findOne({_id: new ObjectID(id)}, (e, communityMetric) => {
+        .findOne({_id: new ObjectId(id)}, (e, communityMetric) => {
                                             client.close();
                                             if(e){ return done(e); }
                                             domain.addMetric(sub, communityMetric.metric, done);
@@ -343,7 +343,7 @@ domain.deleteLogEntry = (phone, id, done) =>{
     if(err){ return done("Cannot connect to Database", err); }
     client.db()
       .collection(getSamplesCollectionName(phone))
-      .deleteOne({ _id: new ObjectID(id) }, (e) =>{
+      .deleteOne({ _id: new ObjectId(id) }, (e) =>{
         if(e){ return done("Error deleting log entry: " + err); }
         done(null);
       });
@@ -368,8 +368,6 @@ domain.getLogsInLastDaysByPhone = (phone, metricName, days, done) =>{
       done(null, data);
     });
 };
-
-
 
 // /* 
 //   Returns a simple statistic object with teh following schema:

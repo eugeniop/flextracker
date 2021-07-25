@@ -27,6 +27,7 @@ const subscriberById = (req, res, next) => {
       if(e) return next(e);
       req.subscriber = s;
       res.locals.user = req.oidc.user;
+      log(req.subscriber);
       next();
     });
   };
@@ -39,7 +40,7 @@ app.get('/', subscriberById, (req, res) => {
 app.get('/metrics', subscriberById, (req, res, next) =>{
   if(!req.subscriber){
     //Bootstrap subscriber in the database
-    domain.createSubscriber(req.session.user.sub, req.session.user.name, (e) =>{
+    domain.createSubscriber(req.subscriber.sub, req.session.user.name, (e) =>{
       if(e) { return next(e); }
       return res.render('metrics', { metrics: []});    
     })
@@ -49,8 +50,8 @@ app.get('/metrics', subscriberById, (req, res, next) =>{
   }
 });
 
-app.get('/metrics/delete/:name', (req, res, next) =>{
-  domain.deleteMetric(req.session.user.sub, req.params.name, (e,s) =>{
+app.get('/metrics/delete/:name', subscriberById, (req, res, next) =>{
+  domain.deleteMetric(req.subscriber.sub, req.params.name, (e,s) =>{
     if(e) { return next(e) };
     res.redirect('/web/metrics');
   });
@@ -134,7 +135,7 @@ app.post('/metrics/add', subscriberById, parseForm, csrfProtection, (req, res, n
 
   delete metric.unAvailableCommands;
 
-  domain.addMetric(req.session.user.sub, metric, (e, s) =>{
+  domain.addMetric(req.subscriber.sub, metric, (e, s) =>{
     if(e){ return next(e); }
     res.redirect('/web/metrics/');
   });
@@ -153,7 +154,7 @@ app.post('/metrics/share', subscriberById, parseForm, csrfProtection, (req, res,
   const metric = _.find(req.subscriber.metrics, (m) => m.name === name);
   if(!metric){ return next("Invalid metric"); }
   
-  domain.shareMetric(req.session.user.sub, category, metric, (e, s) =>{
+  domain.shareMetric(req.subscriber.sub, category, metric, (e, s) =>{
     if(e){ return next(e); }
     res.redirect('/web/metrics/');
   });
@@ -252,10 +253,12 @@ app.post('/metrics/logs/csv/:name', subscriberById, parseForm, csrfProtection, (
 
 
     const d = _.map(logs, (l) => {
+      log(l);
       const m = moment(l.createdAt).tz('America/Los_Angeles');
       return  m.format('MM/DD/YYYY') + "," + m.format("HH:MM") + "," + 
-              + l.value.join(',') + "," + l.notes;
+              + (Array.isArray(l.value) ? l.value.join(',') : l.value) + "," + (l.notes || "");
     }).join('\n');
+    
     res.write(d);
     res.end();
   });

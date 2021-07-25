@@ -8,6 +8,7 @@ const { log } = console;
 const domain = require('../domain');
 
 const subscriberById = (req, res, next) => {
+    log(req.user);
     domain.getSubscriberById(req.user.sub, (e, s) => {
       if(e) return next(e);
       req.subscriber = s;

@@ -46,6 +46,7 @@ server.use(auth(config));
 server.use('/public', express.static('web/public'));
 server.use('/web', requiresAuth(), web);
 
+// This is a "keep alive" endpoint. A cronjob calls this endpoint (so could "Pingdom")
 server.get("/ping", (req,res) =>{
   res.send("OK");
 });
