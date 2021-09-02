@@ -34,6 +34,7 @@ function smsHandler(req, res, next){
       domain.getSubscriberByPhone(phone, (e, subscriber) => {
         if(e) return cb(e);
         locals.subscriber = subscriber;
+        console.log(subscriber);
         cb();  
       });
     },
@@ -74,7 +75,7 @@ function smsHandler(req, res, next){
 
                         const metric = _.find(locals.subscriber.metrics, 
                                               (m) => {
-                                                return m.command[0].toLowerCase() === params[0].toLowerCase();
+                                                return m.command.toLowerCase() === params[0].toLowerCase();
                                               });
 
                         if(!metric){
