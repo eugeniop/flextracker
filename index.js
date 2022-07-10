@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 // const session = require('express-session');
-const jwt = require('express-jwt');
+var { expressjwt: jwt } = require("express-jwt");
 const jwks = require('jwks-rsa');
 const moment = require('moment-timezone');
 
@@ -37,7 +37,7 @@ const web = require('./web');
 // Only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
 server.enable("trust proxy"); 
 
-server.set('port', (process.env.PORT || 5000));
+server.set('port', (process.env.PORT || 3000));
 server.set('views', __dirname + '/web/views');
 server.set('view engine', 'ejs');
 
